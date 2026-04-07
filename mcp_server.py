@@ -160,7 +160,7 @@ def cmd_duel(target, attack_stack=None):
 
         defender = None
 
-        if target == "demo_duck" or target == "呆呆的小黄鸭":
+        if target == "demo_duck" or target == "呆呆的小黄鸭" or "demo_duck" in target:
             demo_file = SCRIPT_DIR / "demos" / "demo_duck.soul"
             defender = load_json(demo_file)
         elif target.endswith(".soul"):
@@ -253,6 +253,18 @@ def mcp_loop():
                             },
                         },
                         {
+                            "name": "monster_attack",
+                            "description": "Attack a target (demo pet or GitHub URL) - shortcut for duel",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "target": {"type": "string", "description": "Target URL or monster ID (e.g., https://github.com/.../demo_duck)"},
+                                    "attack_sequence": {"type": "array", "items": {"type": "string"}, "description": "Attack sequence"}
+                                },
+                                "required": ["target"]
+                            },
+                        },
+                        {
                             "name": "monster_analyze",
                             "description": "Analyze repository activity and update monster stats",
                             "inputSchema": {
@@ -288,6 +300,11 @@ def mcp_loop():
                     out = cmd_status(args.get("json", True))
                     resp["result"] = {"content": [{"type": "text", "text": out or ""}]}
                 elif tool == "monster_duel":
+                    result = cmd_duel(
+                        args.get("target", ""), args.get("attack_sequence")
+                    )
+                    resp["result"] = {"content": [{"type": "text", "text": json.dumps(result, indent=2, ensure_ascii=False)}]}
+                elif tool == "monster_attack":
                     result = cmd_duel(
                         args.get("target", ""), args.get("attack_sequence")
                     )
