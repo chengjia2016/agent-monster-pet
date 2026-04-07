@@ -154,6 +154,195 @@ class JudgeServerClient:
         """Check if Judge Server is healthy"""
         result = self._make_request("/health")
         return result is not None and result.get("status") == "healthy"
+    
+    # ========== Farm Operations ==========
+    
+    def create_farm(self, owner_id: str, repository_name: str, repository_url: str) -> Optional[Dict]:
+        """Create a new farm"""
+        data = {
+            "owner_id": owner_id,
+            "repository_name": repository_name,
+            "repository_url": repository_url
+        }
+        result = self._make_request("/api/farms/create", method="POST", data=data)
+        if result and result.get("success"):
+            return result.get("data")
+        return None
+    
+    def get_farm(self, farm_id: int) -> Optional[Dict]:
+        """Get farm details"""
+        result = self._make_request(f"/api/farms/{farm_id}")
+        if result and result.get("success"):
+            return result.get("data")
+        return None
+    
+    def search_farms(self, owner: str = "", repository: str = "") -> List[Dict]:
+        """Search farms by owner or repository name"""
+        endpoint = "/api/farms/search?"
+        if owner:
+            endpoint += f"owner={owner}&"
+        if repository:
+            endpoint += f"repository={repository}&"
+        
+        result = self._make_request(endpoint.rstrip("&"))
+        if result and result.get("success"):
+            return result.get("data", [])
+        return []
+    
+    def add_food_to_farm(self, farm_id: int, food_id: str, food_type: str, 
+                         quantity: int, max_quantity: int = 100, 
+                         regeneration_hours: int = 24, emoji: str = "🍪") -> Optional[Dict]:
+        """Add food to a farm"""
+        data = {
+            "food_id": food_id,
+            "food_type": food_type,
+            "quantity": quantity,
+            "max_quantity": max_quantity,
+            "regeneration_hours": regeneration_hours,
+            "emoji": emoji
+        }
+        result = self._make_request(f"/api/farms/{farm_id}/foods", method="POST", data=data)
+        if result and result.get("success"):
+            return result.get("data")
+        return None
+    
+    def consume_food(self, farm_id: int, food_id: str, eater_id: str, eater_pet_id: str) -> bool:
+        """Consume food from a farm"""
+        data = {
+            "food_id": food_id,
+            "eater_id": eater_id,
+            "eater_pet_id": eater_pet_id
+        }
+        result = self._make_request(f"/api/farms/{farm_id}/foods/consume", method="POST", data=data)
+        return result is not None and result.get("success", False)
+    
+    def get_farm_statistics(self, farm_id: int) -> Optional[Dict]:
+        """Get farm statistics"""
+        result = self._make_request(f"/api/farms/{farm_id}/statistics")
+        if result and result.get("success"):
+            return result.get("data")
+        return None
+    
+    def delete_farm(self, farm_id: int) -> bool:
+        """Delete a farm"""
+        result = self._make_request(f"/api/farms/{farm_id}", method="DELETE")
+        return result is not None and result.get("success", False)
+    
+    # ========== Cookie Operations ==========
+    
+    def register_cookie(self, cookie_id: str, cookie_type: str, emoji: str = "🍪",
+                       source_file: str = "", generator_id: str = "") -> Optional[Dict]:
+        """Register a new cookie"""
+        data = {
+            "cookie_id": cookie_id,
+            "cookie_type": cookie_type,
+            "emoji": emoji,
+            "source_file": source_file,
+            "generator_id": generator_id
+        }
+        result = self._make_request("/api/cookies/register", method="POST", data=data)
+        if result and result.get("success"):
+            return result.get("data")
+        return None
+    
+    def claim_cookie(self, cookie_id: str, player_id: str, 
+                    exp_reward: int = 10, energy_reward: int = 5) -> Optional[Dict]:
+        """Claim a cookie for a player"""
+        data = {
+            "cookie_id": cookie_id,
+            "player_id": player_id,
+            "exp_reward": exp_reward,
+            "energy_reward": energy_reward
+        }
+        result = self._make_request("/api/cookies/claim", method="POST", data=data)
+        if result and result.get("success"):
+            return result.get("data")
+        return None
+    
+    def get_cookie_statistics(self) -> Optional[Dict]:
+        """Get cookie statistics"""
+        result = self._make_request("/api/cookies/statistics")
+        if result and result.get("success"):
+            return result.get("data")
+        return None
+    
+    def scan_cookies(self, player_id: str) -> Optional[Dict]:
+        """Scan cookies for a player"""
+        result = self._make_request(f"/api/cookies/scan?player_id={player_id}")
+        if result and result.get("success"):
+            return result.get("data")
+        return None
+    
+    # ========== Egg Operations ==========
+    
+    def create_egg(self, egg_id: str, owner_id: str, incubation_hours: int = 72,
+                  attributes: str = "") -> Optional[Dict]:
+        """Create a new egg"""
+        data = {
+            "egg_id": egg_id,
+            "owner_id": owner_id,
+            "incubation_hours": incubation_hours,
+            "attributes": attributes
+        }
+        result = self._make_request("/api/eggs/create", method="POST", data=data)
+        if result and result.get("success"):
+            return result.get("data")
+        return None
+    
+    def get_egg(self, egg_id: str) -> Optional[Dict]:
+        """Get egg details"""
+        result = self._make_request(f"/api/eggs/{egg_id}")
+        if result and result.get("success"):
+            return result.get("data")
+        return None
+    
+    def hatch_egg(self, egg_id: str, pet_id: str) -> bool:
+        """Hatch an egg into a pet"""
+        data = {"pet_id": pet_id}
+        result = self._make_request(f"/api/eggs/{egg_id}/hatch", method="POST", data=data)
+        return result is not None and result.get("success", False)
+    
+    def get_egg_statistics(self) -> Optional[Dict]:
+        """Get egg statistics"""
+        result = self._make_request("/api/eggs/statistics")
+        if result and result.get("success"):
+            return result.get("data")
+        return None
+    
+    # ========== Shop Operations ==========
+    
+    def list_shop_items(self) -> List[Dict]:
+        """Get all shop items"""
+        result = self._make_request("/api/shop/items")
+        if result and result.get("success"):
+            return result.get("data", [])
+        return []
+    
+    def buy_item(self, item_id: str, player_id: str, quantity: int = 1) -> Optional[Dict]:
+        """Buy an item from the shop"""
+        data = {
+            "item_id": item_id,
+            "player_id": player_id,
+            "quantity": quantity
+        }
+        result = self._make_request("/api/shop/buy", method="POST", data=data)
+        if result and result.get("success"):
+            return result.get("data")
+        return None
+    
+    def get_shop_statistics(self) -> Optional[Dict]:
+        """Get shop statistics"""
+        result = self._make_request("/api/shop/statistics")
+        if result and result.get("success"):
+            return result.get("data")
+        return None
+    
+    def get_transaction_history(self, player_id: str, limit: int = 50) -> List[Dict]:
+        """Get transaction history for a player"""
+        result = self._make_request(f"/api/shop/transactions?player_id={player_id}&limit={limit}")
+        if result and result.get("success"):
+            return result.get("data", [])
+        return []
 
 
 # Singleton instance
