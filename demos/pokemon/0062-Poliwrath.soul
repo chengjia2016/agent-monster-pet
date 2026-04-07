@@ -1,0 +1,69 @@
+{
+  "metadata": {
+    "name": "Poliwrath",
+    "species": "Poliwrath",
+    "birth_time": "2026-04-07T00:00:00.000000",
+    "owner": "pokedex@agent-monster",
+    "generation": 1,
+    "evolution_stage": 1,
+    "avatar": "\n  Poliwrath\n ╭───╮\n│ ◕‿◕ │\n╰─────╯\n  蚊香泳士\n  ニョロボン\n"
+  },
+  "stats": {
+    "hp": {
+      "base": 90,
+      "iv": 15,
+      "ev": 0,
+      "exp": 0
+    },
+    "attack": {
+      "base": 95,
+      "iv": 15,
+      "ev": 0,
+      "exp": 0
+    },
+    "defense": {
+      "base": 95,
+      "iv": 15,
+      "ev": 0,
+      "exp": 0
+    },
+    "speed": {
+      "base": 70,
+      "iv": 15,
+      "ev": 0,
+      "exp": 0
+    },
+    "armor": {
+      "base": 90,
+      "iv": 15,
+      "ev": 0,
+      "exp": 0
+    },
+    "quota": {
+      "base": 70,
+      "iv": 15,
+      "ev": 0,
+      "exp": 0
+    }
+  },
+  "genes": {
+    "lucky": {
+      "weight": 0.3,
+      "source_commits": []
+    },
+    "logic": {
+      "weight": 0.1,
+      "source_commits": []
+    },
+    "speed": {
+      "weight": 0.1,
+      "source_commits": []
+    }
+  },
+  "battle_history": [],
+  "signature": {
+    "algorithm": "RSA-SHA256",
+    "value": "",
+    "keyid": ""
+  }
+}

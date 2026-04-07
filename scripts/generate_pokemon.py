@@ -1,107 +1,195 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Generate Pokemon pets for Agent Monster from static data
+Generate Pokemon pets for Agent Monster from the 42arch/pokemon-dataset-zh dataset
+Extracts first 100 Pokemon with full multilingual support (EN, ZH, JP)
 """
 
 import json
 import os
+import urllib.request
+import urllib.error
+import urllib.parse
 
-# First 50 Pokemon with their stats
-POKEMON_DATA = [
-    {"id": "001", "name": "Bulbasaur", "name_zh": "妙蛙种子", "types": ["Grass", "Poison"], "stats": {"hp": 45, "attack": 49, "defense": 49, "speed": 45, "sp_attack": 65, "sp_defense": 65}},
-    {"id": "002", "name": "Ivysaur", "name_zh": "妙蛙草", "types": ["Grass", "Poison"], "stats": {"hp": 60, "attack": 62, "defense": 63, "speed": 60, "sp_attack": 80, "sp_defense": 80}},
-    {"id": "003", "name": "Venusaur", "name_zh": "妙蛙花", "types": ["Grass", "Poison"], "stats": {"hp": 80, "attack": 82, "defense": 83, "speed": 80, "sp_attack": 100, "sp_defense": 100}},
-    {"id": "004", "name": "Charmander", "name_zh": "小火龙", "types": ["Fire"], "stats": {"hp": 39, "attack": 52, "defense": 43, "speed": 65, "sp_attack": 60, "sp_defense": 50}},
-    {"id": "005", "name": "Charmeleon", "name_zh": "火恐龙", "types": ["Fire"], "stats": {"hp": 58, "attack": 64, "defense": 58, "speed": 80, "sp_attack": 80, "sp_defense": 65}},
-    {"id": "006", "name": "Charizard", "name_zh": "喷火龙", "types": ["Fire", "Flying"], "stats": {"hp": 78, "attack": 84, "defense": 78, "speed": 100, "sp_attack": 109, "sp_defense": 85}},
-    {"id": "007", "name": "Squirtle", "name_zh": "杰尼龟", "types": ["Water"], "stats": {"hp": 44, "attack": 48, "defense": 65, "speed": 43, "sp_attack": 50, "sp_defense": 64}},
-    {"id": "008", "name": "Wartortle", "name_zh": "卡咪龟", "types": ["Water"], "stats": {"hp": 59, "attack": 63, "defense": 80, "speed": 58, "sp_attack": 65, "sp_defense": 80}},
-    {"id": "009", "name": "Blastoise", "name_zh": "水箭龟", "types": ["Water"], "stats": {"hp": 79, "attack": 83, "defense": 100, "speed": 78, "sp_attack": 85, "sp_defense": 105}},
-    {"id": "010", "name": "Caterpie", "name_zh": "绿毛虫", "types": ["Bug"], "stats": {"hp": 45, "attack": 30, "defense": 35, "speed": 45, "sp_attack": 20, "sp_defense": 20}},
-    {"id": "011", "name": "Metapod", "name_zh": "铁甲蛹", "types": ["Bug"], "stats": {"hp": 50, "attack": 20, "defense": 55, "speed": 30, "sp_attack": 25, "sp_defense": 25}},
-    {"id": "012", "name": "Butterfree", "name_zh": "巴大蝶", "types": ["Bug", "Flying"], "stats": {"hp": 60, "attack": 45, "defense": 50, "speed": 70, "sp_attack": 90, "sp_defense": 80}},
-    {"id": "013", "name": "Weedle", "name_zh": "独角虫", "types": ["Bug", "Poison"], "stats": {"hp": 40, "attack": 35, "defense": 30, "speed": 50, "sp_attack": 20, "sp_defense": 20}},
-    {"id": "014", "name": "Kakuna", "name_zh": "铁壳蛹", "types": ["Bug", "Poison"], "stats": {"hp": 45, "attack": 25, "defense": 50, "speed": 35, "sp_attack": 25, "sp_defense": 25}},
-    {"id": "015", "name": "Beedrill", "name_zh": "大针蜂", "types": ["Bug", "Poison"], "stats": {"hp": 65, "attack": 90, "defense": 40, "speed": 75, "sp_attack": 45, "sp_defense": 80}},
-    {"id": "016", "name": "Pidgey", "name_zh": "波波", "types": ["Normal", "Flying"], "stats": {"hp": 40, "attack": 45, "defense": 40, "speed": 56, "sp_attack": 35, "sp_defense": 35}},
-    {"id": "017", "name": "Pidgeotto", "name_zh": "比比鸟", "types": ["Normal", "Flying"], "stats": {"hp": 63, "attack": 60, "defense": 55, "speed": 71, "sp_attack": 50, "sp_defense": 50}},
-    {"id": "018", "name": "Pidgeot", "name_zh": "大比鸟", "types": ["Normal", "Flying"], "stats": {"hp": 83, "attack": 80, "defense": 75, "speed": 101, "sp_attack": 70, "sp_defense": 70}},
-    {"id": "019", "name": "Rattata", "name_zh": "小拉达", "types": ["Normal"], "stats": {"hp": 30, "attack": 56, "defense": 35, "speed": 72, "sp_attack": 25, "sp_defense": 35}},
-    {"id": "020", "name": "Raticate", "name_zh": "拉达", "types": ["Normal"], "stats": {"hp": 55, "attack": 81, "defense": 60, "speed": 97, "sp_attack": 50, "sp_defense": 70}},
-    {"id": "021", "name": "Spearow", "name_zh": "烈雀", "types": ["Normal", "Flying"], "stats": {"hp": 40, "attack": 60, "defense": 30, "speed": 70, "sp_attack": 31, "sp_defense": 31}},
-    {"id": "022", "name": "Fearow", "name_zh": "大嘴雀", "types": ["Normal", "Flying"], "stats": {"hp": 65, "attack": 90, "defense": 65, "speed": 100, "sp_attack": 61, "sp_defense": 61}},
-    {"id": "023", "name": "Ekans", "name_zh": "阿柏蛇", "types": ["Poison"], "stats": {"hp": 35, "attack": 60, "defense": 44, "speed": 55, "sp_attack": 40, "sp_defense": 54}},
-    {"id": "024", "name": "Arbok", "name_zh": "阿柏怪", "types": ["Poison"], "stats": {"hp": 60, "attack": 85, "defense": 69, "speed": 80, "sp_attack": 65, "sp_defense": 79}},
-    {"id": "025", "name": "Pikachu", "name_zh": "皮卡丘", "types": ["Electric"], "stats": {"hp": 35, "attack": 55, "defense": 40, "speed": 90, "sp_attack": 50, "sp_defense": 50}},
-    {"id": "026", "name": "Raichu", "name_zh": "雷丘", "types": ["Electric"], "stats": {"hp": 60, "attack": 90, "defense": 55, "speed": 110, "sp_attack": 90, "sp_defense": 80}},
-    {"id": "027", "name": "Sandshrew", "name_zh": "穿山鼠", "types": ["Ground"], "stats": {"hp": 50, "attack": 75, "defense": 85, "speed": 40, "sp_attack": 20, "sp_defense": 30}},
-    {"id": "028", "name": "Sandslash", "name_zh": "穿山王", "types": ["Ground"], "stats": {"hp": 75, "attack": 100, "defense": 110, "speed": 65, "sp_attack": 45, "sp_defense": 55}},
-    {"id": "029", "name": "Nidoran-F", "name_zh": "尼多兰", "types": ["Poison"], "stats": {"hp": 55, "attack": 47, "defense": 52, "speed": 41, "sp_attack": 40, "sp_defense": 40}},
-    {"id": "030", "name": "Nidorina", "name_zh": "尼多娜", "types": ["Poison"], "stats": {"hp": 70, "attack": 62, "defense": 67, "speed": 56, "sp_attack": 55, "sp_defense": 55}},
-    {"id": "031", "name": "Nidoqueen", "name_zh": "尼多后", "types": ["Poison", "Ground"], "stats": {"hp": 90, "attack": 92, "defense": 87, "speed": 76, "sp_attack": 75, "sp_defense": 85}},
-    {"id": "032", "name": "Nidoran-M", "name_zh": "尼多朗", "types": ["Poison"], "stats": {"hp": 46, "attack": 57, "defense": 40, "speed": 50, "sp_attack": 40, "sp_defense": 40}},
-    {"id": "033", "name": "Nidorino", "name_zh": "尼多力诺", "types": ["Poison"], "stats": {"hp": 61, "attack": 72, "defense": 57, "speed": 65, "sp_attack": 55, "sp_defense": 55}},
-    {"id": "034", "name": "Nidoking", "name_zh": "尼多王", "types": ["Poison", "Ground"], "stats": {"hp": 81, "attack": 102, "defense": 77, "speed": 85, "sp_attack": 85, "sp_defense": 75}},
-    {"id": "035", "name": "Clefairy", "name_zh": "皮皮", "types": ["Fairy"], "stats": {"hp": 70, "attack": 45, "defense": 48, "speed": 35, "sp_attack": 60, "sp_defense": 65}},
-    {"id": "036", "name": "Clefable", "name_zh": "皮可西", "types": ["Fairy"], "stats": {"hp": 95, "attack": 70, "defense": 73, "speed": 60, "sp_attack": 95, "sp_defense": 90}},
-    {"id": "037", "name": "Vulpix", "name_zh": "六尾", "types": ["Fire"], "stats": {"hp": 38, "attack": 41, "defense": 40, "speed": 65, "sp_attack": 50, "sp_defense": 65}},
-    {"id": "038", "name": "Ninetales", "name_zh": "九尾", "types": ["Fire"], "stats": {"hp": 73, "attack": 76, "defense": 75, "speed": 100, "sp_attack": 81, "sp_defense": 100}},
-    {"id": "039", "name": "Jigglypuff", "name_zh": "胖丁", "types": ["Normal", "Fairy"], "stats": {"hp": 115, "attack": 45, "defense": 45, "speed": 20, "sp_attack": 45, "sp_defense": 25}},
-    {"id": "040", "name": "Wigglytuff", "name_zh": "胖可丁", "types": ["Normal", "Fairy"], "stats": {"hp": 90, "attack": 70, "defense": 45, "speed": 45, "sp_attack": 85, "sp_defense": 70}},
-    {"id": "041", "name": "Zubat", "name_zh": "超音蝠", "types": ["Poison", "Flying"], "stats": {"hp": 40, "attack": 45, "defense": 35, "speed": 55, "sp_attack": 30, "sp_defense": 40}},
-    {"id": "042", "name": "Golbat", "name_zh": "大嘴蝠", "types": ["Poison", "Flying"], "stats": {"hp": 75, "attack": 80, "defense": 70, "speed": 90, "sp_attack": 65, "sp_defense": 75}},
-    {"id": "043", "name": "Oddish", "name_zh": "走路草", "types": ["Grass", "Poison"], "stats": {"hp": 45, "attack": 50, "defense": 55, "speed": 30, "sp_attack": 75, "sp_defense": 65}},
-    {"id": "044", "name": "Gloom", "name_zh": "臭臭花", "types": ["Grass", "Poison"], "stats": {"hp": 60, "attack": 65, "defense": 70, "speed": 40, "sp_attack": 85, "sp_defense": 75}},
-    {"id": "045", "name": "Vileplume", "name_zh": "霸王花", "types": ["Grass", "Poison"], "stats": {"hp": 75, "attack": 80, "defense": 85, "speed": 50, "sp_attack": 100, "sp_defense": 90}},
-    {"id": "046", "name": "Paras", "name_zh": "派拉斯", "types": ["Bug", "Grass"], "stats": {"hp": 35, "attack": 70, "defense": 55, "speed": 25, "sp_attack": 45, "sp_defense": 55}},
-    {"id": "047", "name": "Parasect", "name_zh": "派拉斯特", "types": ["Bug", "Grass"], "stats": {"hp": 60, "attack": 95, "defense": 80, "speed": 30, "sp_attack": 60, "sp_defense": 80}},
-    {"id": "048", "name": "Venonat", "name_zh": "毛球", "types": ["Bug", "Poison"], "stats": {"hp": 60, "attack": 55, "defense": 50, "speed": 45, "sp_attack": 40, "sp_defense": 55}},
-    {"id": "049", "name": "Venomoth", "name_zh": "末入蛾", "types": ["Bug", "Poison"], "stats": {"hp": 70, "attack": 65, "defense": 60, "speed": 90, "sp_attack": 90, "sp_defense": 75}},
-    {"id": "050", "name": "Diglett", "name_zh": "地鼠", "types": ["Ground"], "stats": {"hp": 10, "attack": 55, "defense": 25, "speed": 95, "sp_attack": 35, "sp_defense": 45}},
-]
+# Base URLs for the dataset
+BASE_URL = "https://raw.githubusercontent.com/42arch/pokemon-dataset-zh/main"
+SIMPLE_POKEDEX_URL = f"{BASE_URL}/data/simple_pokedex.json"
+POKEMON_DETAIL_URL = f"{BASE_URL}/data/pokemon/"
+
+def fetch_json(url):
+    """Fetch and parse JSON from a URL"""
+    try:
+        with urllib.request.urlopen(url, timeout=10) as response:
+            return json.loads(response.read().decode('utf-8'))
+    except Exception as e:
+        return None
+
+def get_pokemon_detail_url(index, name_zh):
+    """Generate the correct URL for Pokemon detail data with proper encoding"""
+    filename = f"{index}-{name_zh}.json"
+    encoded_filename = urllib.parse.quote(filename.encode('utf-8'), safe='-.')
+    return f"{POKEMON_DETAIL_URL}{encoded_filename}"
 
 def get_gene_type(types):
     """Determine gene type based on Pokemon type"""
-    if "Fire" in types:
-        return "creative"
-    elif "Grass" in types:
-        return "logic"
-    elif "Electric" in types:
-        return "speed"
-    elif "Water" in types:
-        return "logic"
-    elif "Fighting" in types:
-        return "creative"
-    elif "Bug" in types:
-        return "logic"
-    elif "Poison" in types:
-        return "lucky"
-    else:
-        return "lucky"
+    type_to_gene = {
+        "Fire": "creative",
+        "Grass": "logic",
+        "Electric": "speed",
+        "Water": "logic",
+        "Fighting": "creative",
+        "Bug": "logic",
+        "Poison": "lucky",
+        "Flying": "speed",
+        "Ground": "logic",
+        "Rock": "logic",
+        "Psychic": "speed",
+        "Ghost": "lucky",
+        "Ice": "logic",
+        "Dragon": "creative",
+        "Dark": "lucky",
+        "Steel": "logic",
+        "Fairy": "creative",
+        "Normal": "lucky"
+    }
+    
+    for ptype in types:
+        if ptype in type_to_gene:
+            return type_to_gene[ptype]
+    return "lucky"
 
-def create_pet(pokemon):
-    """Convert Pokemon to pet format"""
-    stats = pokemon["stats"]
-    gene_type = get_gene_type(pokemon["types"])
+def get_types_from_stats(name_en, name_zh):
+    """Try to infer types from Pokemon name - this is a fallback"""
+    type_hints = {
+        "Bulbasaur": ["Grass", "Poison"],
+        "Ivysaur": ["Grass", "Poison"],
+        "Venusaur": ["Grass", "Poison"],
+        "Charmander": ["Fire"],
+        "Charmeleon": ["Fire"],
+        "Charizard": ["Fire", "Flying"],
+        "Squirtle": ["Water"],
+        "Wartortle": ["Water"],
+        "Blastoise": ["Water"],
+        "Caterpie": ["Bug"],
+        "Metapod": ["Bug"],
+        "Butterfree": ["Bug", "Flying"],
+        "Weedle": ["Bug", "Poison"],
+        "Kakuna": ["Bug", "Poison"],
+        "Beedrill": ["Bug", "Poison"],
+        "Pidgey": ["Normal", "Flying"],
+        "Pidgeotto": ["Normal", "Flying"],
+        "Pidgeot": ["Normal", "Flying"],
+        "Rattata": ["Normal"],
+        "Raticate": ["Normal"],
+        "Spearow": ["Normal", "Flying"],
+        "Fearow": ["Normal", "Flying"],
+        "Ekans": ["Poison"],
+        "Arbok": ["Poison"],
+        "Pikachu": ["Electric"],
+        "Raichu": ["Electric"],
+        "Sandshrew": ["Ground"],
+        "Sandslash": ["Ground"],
+        "Nidoran♀": ["Poison"],
+        "Nidorina": ["Poison"],
+        "Nidoqueen": ["Poison", "Ground"],
+        "Nidoran♂": ["Poison"],
+        "Nidorino": ["Poison"],
+        "Nidoking": ["Poison", "Ground"],
+        "Clefairy": ["Fairy"],
+        "Clefable": ["Fairy"],
+        "Vulpix": ["Fire"],
+        "Ninetales": ["Fire"],
+        "Jigglypuff": ["Normal", "Fairy"],
+        "Wigglytuff": ["Normal", "Fairy"],
+        "Zubat": ["Poison", "Flying"],
+        "Golbat": ["Poison", "Flying"],
+        "Oddish": ["Grass", "Poison"],
+        "Gloom": ["Grass", "Poison"],
+        "Vileplume": ["Grass", "Poison"],
+        "Paras": ["Bug", "Grass"],
+        "Parasect": ["Bug", "Grass"],
+        "Venonat": ["Bug", "Poison"],
+        "Venomoth": ["Bug", "Poison"],
+        "Diglett": ["Ground"],
+        "Dugtrio": ["Ground"],
+        "Meowth": ["Normal"],
+        "Persian": ["Normal"],
+        "Psyduck": ["Water"],
+        "Golduck": ["Water"],
+        "Mankey": ["Fighting"],
+        "Primeape": ["Fighting"],
+        "Growlithe": ["Fire"],
+        "Arcanine": ["Fire"],
+        "Poliwag": ["Water"],
+        "Poliwhirl": ["Water"],
+        "Poliwrath": ["Water", "Fighting"],
+        "Abra": ["Psychic"],
+        "Kadabra": ["Psychic"],
+        "Alakazam": ["Psychic"],
+        "Machop": ["Fighting"],
+        "Machoke": ["Fighting"],
+        "Machamp": ["Fighting"],
+        "Bellsprout": ["Grass", "Poison"],
+        "Weepinbell": ["Grass", "Poison"],
+        "Victreebel": ["Grass", "Poison"],
+        "Tentacool": ["Water", "Poison"],
+        "Tentacruel": ["Water", "Poison"],
+        "Geodude": ["Rock", "Ground"],
+        "Graveler": ["Rock", "Ground"],
+        "Golem": ["Rock", "Ground"],
+        "Ponyta": ["Fire"],
+        "Rapidash": ["Fire"],
+        "Slowpoke": ["Water", "Psychic"],
+        "Slowbro": ["Water", "Psychic"],
+        "Magnemite": ["Electric", "Steel"],
+        "Magneton": ["Electric", "Steel"],
+        "Farfetch'd": ["Normal", "Flying"],
+        "Doduo": ["Normal", "Flying"],
+        "Dodrio": ["Normal", "Flying"],
+        "Seel": ["Water"],
+        "Dewgong": ["Water", "Ice"],
+        "Grimer": ["Poison"],
+        "Muk": ["Poison"],
+        "Shellder": ["Water"],
+        "Cloyster": ["Water", "Ice"],
+        "Gastly": ["Ghost", "Poison"],
+        "Haunter": ["Ghost", "Poison"],
+        "Gengar": ["Ghost", "Poison"],
+        "Onix": ["Rock", "Ground"],
+        "Drowzee": ["Psychic"],
+        "Hypno": ["Psychic"],
+        "Krabby": ["Water"],
+        "Kingler": ["Water"],
+        "Voltorb": ["Electric"],
+    }
+    return type_hints.get(name_en, ["Normal"])
+
+def create_pet(pokemon_data, stats_data, types):
+    """Convert Pokemon data to pet format"""
+    stats = stats_data
+    gene_type = get_gene_type(types)
+    
+    name_en = pokemon_data["name_en"]
+    name_zh = pokemon_data["name_zh"]
+    name_jp = pokemon_data["name_jp"]
     
     pet = {
         "metadata": {
-            "name": pokemon["name"],
-            "species": pokemon["name"],
+            "name": name_en,
+            "species": name_en,
             "birth_time": "2026-04-07T00:00:00.000000",
             "owner": "pokedex@agent-monster",
             "generation": 1,
             "evolution_stage": 1,
-            "avatar": f"\n  {pokemon['name']}\n ╭───╮\n│ ◕‿◕ │\n╰─────╯\n  {pokemon['name_zh']}\n"
+            "avatar": f"\n  {name_en}\n ╭───╮\n│ ◕‿◕ │\n╰─────╯\n  {name_zh}\n  {name_jp}\n"
         },
         "stats": {
-            "hp": {"base": stats["hp"], "iv": 15, "ev": 0, "exp": 0},
-            "attack": {"base": stats["attack"], "iv": 15, "ev": 0, "exp": 0},
-            "defense": {"base": stats["defense"], "iv": 15, "ev": 0, "exp": 0},
-            "speed": {"base": stats["speed"], "iv": 15, "ev": 0, "exp": 0},
-            "armor": {"base": stats["sp_defense"], "iv": 15, "ev": 0, "exp": 0},
-            "quota": {"base": stats["sp_attack"], "iv": 15, "ev": 0, "exp": 0}
+            "hp": {"base": int(stats["hp"]), "iv": 15, "ev": 0, "exp": 0},
+            "attack": {"base": int(stats["attack"]), "iv": 15, "ev": 0, "exp": 0},
+            "defense": {"base": int(stats["defense"]), "iv": 15, "ev": 0, "exp": 0},
+            "speed": {"base": int(stats["speed"]), "iv": 15, "ev": 0, "exp": 0},
+            "armor": {"base": int(stats["sp_defense"]), "iv": 15, "ev": 0, "exp": 0},
+            "quota": {"base": int(stats["sp_attack"]), "iv": 15, "ev": 0, "exp": 0}
         },
         "genes": {
             gene_type: {"weight": 0.5, "source_commits": []},
@@ -122,31 +210,98 @@ def main():
     output_dir = "/root/pet/agent-monster-pet/demos/pokemon"
     os.makedirs(output_dir, exist_ok=True)
     
-    all_pokemon = []
+    # Fetch the simple pokedex to get the first 100 Pokemon
+    print("📥 Fetching simple pokedex from 42arch/pokemon-dataset-zh...")
+    simple_pokedex = fetch_json(SIMPLE_POKEDEX_URL)
+    if not simple_pokedex:
+        print("❌ Failed to fetch simple pokedex")
+        return
     
-    for p in POKEMON_DATA:
-        pet = create_pet(p)
+    # Take first 100 Pokemon
+    pokemon_list = simple_pokedex[:100]
+    print(f"✅ Found {len(pokemon_list)} Pokemon to process\n")
+    
+    all_pokemon = []
+    success_count = 0
+    
+    for i, pokemon_info in enumerate(pokemon_list, 1):
+        index = pokemon_info["index"]
+        name_zh = pokemon_info["name_zh"]
+        name_jp = pokemon_info["name_jp"]
+        name_en = pokemon_info["name_en"]
         
-        output_file = os.path.join(output_dir, f"{p['id']}-{p['name']}.soul")
+        print(f"[{i:3d}/100] {name_en:15} ({name_zh:6} / {name_jp:8})", end="")
+        
+        # Fetch detailed data for this Pokemon
+        detail_url = get_pokemon_detail_url(index, name_zh)
+        
+        stats_data = None
+        types = ["Normal"]
+        
+        detail_data = fetch_json(detail_url)
+        if detail_data:
+            # Extract stats from the detailed data
+            stats_list = detail_data.get("stats", [])
+            if stats_list and len(stats_list) > 0:
+                try:
+                    stats_dict = stats_list[0].get("data", {})
+                    stats_data = {
+                        "hp": str(max(1, int(stats_dict.get("hp", 50)))),
+                        "attack": str(max(1, int(stats_dict.get("attack", 50)))),
+                        "defense": str(max(1, int(stats_dict.get("defense", 50)))),
+                        "sp_attack": str(max(1, int(stats_dict.get("sp_attack", 50)))),
+                        "sp_defense": str(max(1, int(stats_dict.get("sp_defense", 50)))),
+                        "speed": str(max(1, int(stats_dict.get("speed", 50))))
+                    }
+                except (ValueError, TypeError):
+                    stats_data = None
+        
+        # Use default stats if fetching failed
+        if not stats_data:
+            stats_data = {"hp": "50", "attack": "50", "defense": "50", "sp_attack": "50", "sp_defense": "50", "speed": "50"}
+            types = get_types_from_stats(name_en, name_zh)
+            print(" [using fallback stats]")
+        else:
+            print(" ✓")
+        
+        # Create the pet
+        pokemon_data = {
+            "name_en": name_en,
+            "name_zh": name_zh,
+            "name_jp": name_jp,
+            "types": types
+        }
+        
+        pet = create_pet(pokemon_data, stats_data, types)
+        
+        # Save the pet file
+        output_file = os.path.join(output_dir, f"{index}-{name_en}.soul")
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(pet, f, indent=2, ensure_ascii=False)
         
-        total = sum(p["stats"].values())
-        print(f"Created: {p['id']}-{p['name']} ({'/'.join(p['types'])}) Total: {total}")
-        
+        # Add to our index
+        total_stats = sum(int(stats_data[key]) for key in ["hp", "attack", "defense", "sp_attack", "sp_defense", "speed"])
         all_pokemon.append({
-            "id": p["id"],
-            "name": p["name"],
-            "name_zh": p["name_zh"],
-            "types": p["types"],
-            "total": total
+            "id": index,
+            "name_en": name_en,
+            "name_zh": name_zh,
+            "name_jp": name_jp,
+            "types": types,
+            "total_stats": total_stats
         })
+        
+        success_count += 1
     
-    with open(os.path.join(output_dir, "index.json"), "w", encoding="utf-8") as f:
+    # Save the index file
+    index_file = os.path.join(output_dir, "index.json")
+    with open(index_file, "w", encoding="utf-8") as f:
         json.dump(all_pokemon, f, indent=2, ensure_ascii=False)
     
-    print(f"\n✅ Created {len(POKEMON_DATA)} Pokemon pets!")
+    print(f"\n{'='*60}")
+    print(f"✅ Successfully created {success_count} Pokemon pets!")
     print(f"   Location: {output_dir}/")
+    print(f"   Index: {index_file}")
+    print(f"{'='*60}")
 
 if __name__ == "__main__":
     main()
