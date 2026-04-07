@@ -133,7 +133,7 @@ def cmd_user_info(github_username=""):
         if not user:
             return f"❌ User '{github_username}' not found"
         
-        account = economy_manager.get_account(user.github_id)
+        account = economy_manager.get_account(user.user_id)
         
         return f"""👤 User Profile
 ===
@@ -189,7 +189,7 @@ def cmd_shop_buy(github_username, item_id, quantity=1):
             return f"❌ User '{github_username}' not found"
         
         # Try to purchase
-        result = economy_manager.purchase_item(user.github_id, item_id, quantity)
+        result = economy_manager.purchase_item(user.user_id, item_id, quantity)
         
         if result.get("success"):
             return f"""✅ Purchase Successful!
@@ -218,7 +218,7 @@ def cmd_inventory_view(github_username):
         if not user:
             return f"❌ User '{github_username}' not found"
         
-        inventory = shop.get_user_inventory(user.github_id)
+        inventory = shop.get_user_inventory(user.user_id)
         
         if not inventory:
             return "📦 Your inventory is empty"
@@ -251,7 +251,7 @@ def cmd_account_stats(github_username):
         if not user:
             return f"❌ User '{github_username}' not found"
         
-        account = economy_manager.get_account(user.github_id)
+        account = economy_manager.get_account(user.user_id)
         if not account:
             return f"❌ No account found for {github_username}"
         

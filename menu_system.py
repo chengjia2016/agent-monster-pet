@@ -138,13 +138,13 @@ class MenuManager:
             self._save_sessions()
     
     def render_main_menu(self, github_login: str) -> Tuple[str, List[Tuple[str, str]]]:
-        """渲染主菜单"""
-        session = self.sessions.get(github_login)
-        if not session:
-            return "❌ 会话已过期", []
-        
-        user = self._find_user_by_login(github_login)
-        account = self.economy_manager.get_account(user.github_id)
+         """渲染主菜单"""
+         session = self.sessions.get(github_login)
+         if not session:
+             return "❌ 会话已过期", []
+         
+         user = self._find_user_by_login(github_login)
+         account = self.economy_manager.get_account(user.user_id)
         
         menu_text = f"""
 ╔════════════════════════════════════════╗
@@ -175,9 +175,9 @@ class MenuManager:
         return menu_text, options
     
     def render_account_menu(self, github_login: str) -> Tuple[str, List[Tuple[str, str]]]:
-        """渲染账户菜单"""
-        user = self._find_user_by_login(github_login)
-        account = self.economy_manager.get_account(user.github_id)
+         """渲染账户菜单"""
+         user = self._find_user_by_login(github_login)
+         account = self.economy_manager.get_account(user.user_id)
         stats = account.get_stats() if account else {}
         
         menu_text = f"""
@@ -244,9 +244,9 @@ GitHub ID: {user.github_id}
         return menu_text, options
     
     def render_inventory_menu(self, github_login: str) -> Tuple[str, List[Tuple[str, str]]]:
-        """渲染背包菜单"""
-        user = self._find_user_by_login(github_login)
-        inventory = self.shop.get_user_inventory(user.github_id)
+         """渲染背包菜单"""
+         user = self._find_user_by_login(github_login)
+         inventory = self.shop.get_user_inventory(user.user_id)
         
         menu_text = """
 ╔════════════════════════════════════════╗
