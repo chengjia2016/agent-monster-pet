@@ -29,7 +29,7 @@ class GitHubCLIIntegration:
         try:
             # 使用 gh auth status 获取用户信息
             result = subprocess.run(
-                ["gh", "auth", "status", "--show-token"],
+                ["gh", "auth", "status"],
                 capture_output=True,
                 text=True,
                 timeout=5
@@ -37,16 +37,25 @@ class GitHubCLIIntegration:
             
             if result.returncode == 0:
                 # 从输出中提取用户名
-                # 格式: "Logged in to github.com as username (keyring)"
-                output = result.stderr or result.stdout
+                # 格式: "Logged in to github.com account username (...)"
+                output = result.stderr + result.stdout
                 for line in output.split('\n'):
-                    if 'as' in line and 'github.com' in line:
-                        # 提取用户名
-                        parts = line.split('as ')
-                        if len(parts) > 1:
-                            username = parts[1].split()[0].strip('()[]')
-                            self.cached_user = username
-                            return username
+                    # 查找包含 "account" 和 "github.com" 的行
+                    if 'account' in line.lower() and 'github.com' in line.lower():
+                        # 提取用户名 - 在 "account" 后面
+                        try:
+                            # 分割字符串找到 account 后的部分
+                            parts = line.split('account')
+                            if len(parts) > 1:
+                                # 获取 account 后面的部分，然后提取第一个非空词
+                                after_account = parts[1].strip()
+                                # 移除括号和其他字符
+                                username = after_account.split()[0].strip('()[]')
+                                if username and not username.startswith('('):
+                                    self.cached_user = username
+                                    return username
+                        except:
+                            pass
         except FileNotFoundError:
             return None
         except Exception as e:

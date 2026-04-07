@@ -457,7 +457,13 @@ def cmd_simple_start():
         
         # 启动菜单
         menu_mgr = MenuManager(str(MONSTER_DIR))
-        menu_text, options = menu_mgr.start_session(username)
+        session = menu_mgr.start_session(username)
+        
+        if not session:
+            return f"❌ 无法创建会话"
+        
+        # 获取主菜单
+        menu_text, options = menu_mgr.get_menu_display(username)
         
         # 构建欢迎消息
         welcome = gh.format_welcome_message()
