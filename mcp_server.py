@@ -158,8 +158,16 @@ def cmd_duel(target, attack_stack=None):
         if not attacker:
             return {"success": False, "error": "No monster found, run init first"}
 
-        opponent_file = MONSTER_DIR / "opponent_pet.soul"
-        defender = load_json(opponent_file)
+        defender = None
+
+        if target == "demo_duck" or target == "呆呆的小黄鸭":
+            demo_file = MONSTER_DIR / "demo_duck.soul"
+            defender = load_json(demo_file)
+        elif target.endswith(".soul"):
+            defender = load_json(Path(target))
+        elif target:
+            opponent_file = MONSTER_DIR / "opponent_pet.soul"
+            defender = load_json(opponent_file)
 
         if not defender:
             defender = {
