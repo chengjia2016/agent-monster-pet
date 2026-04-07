@@ -403,6 +403,110 @@ Add to `~/.claude/settings.json`:
 - [Plugin README](PLUGIN%20README.md)
 - [MCP Configuration](CLAUDE.md)
 - [Quick Start](QUICKSTART.md)
+- [Food System](FOOD_SYSTEM_DESIGN.md)
+
+---
+
+## 🌾 Food System
+
+Agent Monster features a unique cross-repository food system where players can grow food on their farms and other players' pets can visit to consume the food.
+
+### Creating Your Farm
+
+To create a farm, use the OpenCode command:
+
+```
+/monster farm create
+```
+
+This creates a `.monster/farm.yaml` file with initial food:
+- 🍪 **Cookies** (24h regeneration, +10 EXP)
+- 🍎 **Apples** (12h regeneration, +5 All Stats)
+
+### Food Types
+
+| Emoji | Food | Regen Time | Quantity | Effect |
+|-------|------|-----------|----------|---------|
+| 🍪 | Cookie | 24 hours | 3 | +10 EXP |
+| 🍩 | Donut | 48 hours | 2 | +50 Energy |
+| 🍎 | Apple | 12 hours | 5 | +5 All Stats |
+| 🧬 | Gene | 72 hours | 1 | Gene Mutation |
+
+### Exploring and Discovering Farms
+
+Find other players' farms:
+
+```
+/monster explore [query]
+```
+
+### Feeding Your Pet
+
+Visit another player's farm and feed your pet:
+
+```
+/monster feed <farm_owner> <farm_repo> <food_id>
+```
+
+Example:
+```
+/monster feed alice agent-monster-pet apple_alice_001
+```
+
+### Managing Favorites
+
+Keep track of your favorite farms:
+
+```
+/monster favorite list                    - Show favorite farms
+/monster favorite add <farm_url>          - Add to favorites
+/monster favorite remove <farm_url>       - Remove from favorites
+```
+
+### Anti-Cheat Measures
+
+The food system includes several anti-cheat protections:
+
+- **Daily Eat Limit**: Each pet can eat at most 5 times per day
+- **Repository Visit Limit**: A repository can be visited at most 10 times per day
+- **Food Regeneration**: Consumed food regenerates over time (12-72 hours)
+- **Judge Server Validation**: All food consumption is validated server-side
+- **Signature Verification**: All requests include cryptographic signatures
+
+### Farm Discovery Network
+
+Encourage exploration! The system automatically:
+- Discovers new farms on GitHub
+- Tracks farm stats (total foods, regeneration times)
+- Maintains a leaderboard of most productive farms
+- Rewards early farm explorers
+
+### Example Farm YAML
+
+```yaml
+farm:
+  owner: "alice"
+  repository: "agent-monster-pet"
+  url: "https://github.com/alice/agent-monster-pet"
+  planted_at: "2026-04-07T00:00:00Z"
+  foods:
+    - id: "cookie_alice_001"
+      type: "cookie"
+      emoji: "🍪"
+      quantity: 3
+      max_quantity: 3
+      regeneration_hours: 24
+      last_eaten_at: null
+      seed: "0x1234abcd"
+    - id: "apple_alice_001"
+      type: "apple"
+      emoji: "🍎"
+      quantity: 5
+      max_quantity: 5
+      regeneration_hours: 12
+      last_eaten_at: null
+      seed: "0xabcd5678"
+```
 
 ---
 

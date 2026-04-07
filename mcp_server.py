@@ -339,6 +339,139 @@ def cmd_duel(target, attack_stack=None):
         return {"success": False, "error": str(e)}
 
 
+def cmd_farm(action="view"):
+    """Manage your pet's farm"""
+    try:
+        from food_system import FoodManager
+        
+        manager = FoodManager()
+        
+        if action == "view":
+            # Load and display current farm
+            farm = manager.load_farm_from_file(MONSTER_DIR / "farm.yaml")
+            if not farm:
+                return "No farm found. Create one with /monster farm create"
+            
+            output = "🌾 Your Farm\n"
+            output += "===========\n\n"
+            for food in farm.foods:
+                output += f"{food.emoji} {food.type.upper()}: {food.quantity}/{food.max_quantity}\n"
+            return output
+            
+        elif action == "create":
+            # Create a new farm
+            farm = manager.create_farm(
+                owner="player",
+                repository="agent-monster-pet",
+                url="https://github.com/player/agent-monster-pet"
+            )
+            manager.add_food_to_farm(farm, "cookie", 3)
+            manager.add_food_to_farm(farm, "apple", 5)
+            manager.save_farm_to_file(farm, MONSTER_DIR / "farm.yaml")
+            return "✅ Farm created successfully!"
+        
+        return "Unknown farm action"
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+def cmd_feed(farm_owner, farm_repo, food_id):
+    """Feed your pet from another player's farm"""
+    try:
+        import requests
+        import time
+        
+        # Create feed request
+        feed_request = {
+            "id": f"feed_{int(time.time())}",
+            "eater_id": "player",
+            "eater_pet_id": load_json(SOUL_FILE).get("id", "unknown"),
+            "farm_owner": farm_owner,
+            "farm_repo": farm_repo,
+            "food_id": food_id,
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        }
+        
+        # Validate with judge server
+        result = call_judge_server("/api/food/validate", feed_request)
+        
+        if result.get("can_eat", False):
+            # Record the transaction
+            call_judge_server("/api/food/record", feed_request)
+            return f"✅ Fed successfully! Gained {result.get('nutrition_gain', {})}"
+        else:
+            reasons = result.get("reasons", ["Unknown reason"])
+            return f"❌ Cannot feed: {', '.join(reasons)}"
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+def cmd_explore(query=""):
+    """Explore and discover other farms"""
+    try:
+        from food_explorer import GitHubFarmExplorer
+        
+        explorer = GitHubFarmExplorer()
+        
+        # Search for farms
+        farms = explorer.discover_farms(limit=5)
+        
+        if not farms:
+            return "No farms found"
+        
+        output = "🌍 Discovered Farms\n"
+        output += "==================\n\n"
+        
+        for i, farm in enumerate(farms, 1):
+            farm_data = explorer.explore_farm(farm.owner, farm.repository)
+            if farm_data:
+                output += f"{i}. {farm.owner}/{farm.repository}\n"
+                output += f"   Available foods: {farm_data['total_available']}\n"
+                output += f"   URL: {farm.url}\n\n"
+        
+        return output
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+def cmd_favorite(action="list", farm_url=""):
+    """Manage favorite farms"""
+    try:
+        from food_explorer import GitHubFarmExplorer
+        
+        explorer = GitHubFarmExplorer()
+        
+        if action == "list":
+            favorites = explorer.get_favorites()
+            if not favorites:
+                return "No favorite farms yet"
+            output = "⭐ Favorite Farms\n"
+            output += "================\n"
+            for url in favorites:
+                output += f"• {url}\n"
+            return output
+        
+        elif action == "add":
+            favorites = explorer.get_favorites()
+            if farm_url not in favorites:
+                favorites.append(farm_url)
+                explorer.save_favorites(favorites)
+                return f"✅ Added {farm_url} to favorites"
+            return "Already in favorites"
+        
+        elif action == "remove":
+            favorites = explorer.get_favorites()
+            if farm_url in favorites:
+                favorites.remove(farm_url)
+                explorer.save_favorites(favorites)
+                return f"✅ Removed {farm_url} from favorites"
+            return "Not in favorites"
+        
+        return "Unknown action"
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
 def mcp_loop():
     """Main MCP server loop - reads JSON-RPC from stdin"""
     while True:
@@ -450,6 +583,53 @@ def mcp_loop():
                                 "required": ["target_hp", "max_hp"]
                             },
                         },
+                        {
+                            "name": "monster_farm",
+                            "description": "Manage your pet's farm - view or create",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "action": {"type": "string", "enum": ["view", "create"], "description": "Farm action"}
+                                },
+                                "required": []
+                            },
+                        },
+                        {
+                            "name": "monster_feed",
+                            "description": "Feed your pet from another player's farm",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "farm_owner": {"type": "string", "description": "Farm owner GitHub username"},
+                                    "farm_repo": {"type": "string", "description": "Farm repository name"},
+                                    "food_id": {"type": "string", "description": "Food ID to eat"}
+                                },
+                                "required": ["farm_owner", "farm_repo", "food_id"]
+                            },
+                        },
+                        {
+                            "name": "monster_explore",
+                            "description": "Explore and discover other players' farms",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "query": {"type": "string", "description": "Search query"}
+                                },
+                                "required": []
+                            },
+                        },
+                        {
+                            "name": "monster_favorite",
+                            "description": "Manage favorite farms",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "action": {"type": "string", "enum": ["list", "add", "remove"], "description": "Action"},
+                                    "farm_url": {"type": "string", "description": "Farm URL"}
+                                },
+                                "required": ["action"]
+                            },
+                        },
                     ]
                 }
 
@@ -484,6 +664,25 @@ def mcp_loop():
                     resp["result"] = {"content": [{"type": "text", "text": out}]}
                 elif tool == "monster_capture":
                     out = cmd_capture(args.get("target_hp", 0), args.get("max_hp", 100))
+                    resp["result"] = {"content": [{"type": "text", "text": out}]}
+                elif tool == "monster_farm":
+                    out = cmd_farm(args.get("action", "view"))
+                    resp["result"] = {"content": [{"type": "text", "text": out}]}
+                elif tool == "monster_feed":
+                    out = cmd_feed(
+                        args.get("farm_owner", ""),
+                        args.get("farm_repo", ""),
+                        args.get("food_id", "")
+                    )
+                    resp["result"] = {"content": [{"type": "text", "text": out}]}
+                elif tool == "monster_explore":
+                    out = cmd_explore(args.get("query", ""))
+                    resp["result"] = {"content": [{"type": "text", "text": out}]}
+                elif tool == "monster_favorite":
+                    out = cmd_favorite(
+                        args.get("action", "list"),
+                        args.get("farm_url", "")
+                    )
                     resp["result"] = {"content": [{"type": "text", "text": out}]}
                 else:
                     resp["error"] = {"code": -32601, "message": f"Unknown tool: {tool}"}

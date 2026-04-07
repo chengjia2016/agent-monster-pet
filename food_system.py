@@ -151,31 +151,53 @@ class FoodManager:
 
     def add_food_to_farm(
         self,
-        owner: str,
-        repository: str,
-        food_type: FoodType,
+        owner,  # Can be owner string or Farm object
+        repository=None,  # Will be food_type if owner is Farm
+        food_type=None,   # Will be quantity if owner is Farm
         quantity: int = 1,
     ) -> Food:
-        """向农场添加食物"""
-        farm_key = f"{owner}/{repository}"
-        if farm_key not in self.farms:
-            self.create_farm(owner, repository, f"https://github.com/{owner}/{repository}")
-
-        farm = self.farms[farm_key]
-
+        """向农场添加食物
+        
+        Can be called two ways:
+        1. add_food_to_farm(owner_str, repo_str, food_type, quantity)
+        2. add_food_to_farm(farm_obj, food_type, quantity)
+        """
+        # Detect if first parameter is a Farm object
+        if isinstance(owner, Farm):
+            farm = owner
+            food_type_param = repository  # repository is actually food_type in this case
+            quantity_param = food_type if food_type is not None else 1  # food_type is actually quantity
+            owner_str = farm.owner
+            repo_str = farm.repository
+        else:
+            # Standard call with owner, repository strings
+            owner_str = owner
+            repo_str = repository
+            food_type_param = food_type
+            quantity_param = quantity
+            
+            farm_key = f"{owner_str}/{repo_str}"
+            if farm_key not in self.farms:
+                self.create_farm(owner_str, repo_str, f"https://github.com/{owner_str}/{repo_str}")
+            farm = self.farms[farm_key]
+        
+        # Convert string to FoodType if needed
+        if isinstance(food_type_param, str):
+            food_type_param = FoodType(food_type_param)
+        
         # 生成食物 ID
-        food_id = f"{food_type.value}_{owner}_{int(time.time() * 1000)}"
+        food_id = f"{food_type_param.value}_{owner_str}_{int(time.time() * 1000)}"
 
         # 生成种子
         seed = self._generate_seed(food_id)
 
         # 获取食物属性
-        props = FOOD_PROPERTIES[food_type]
+        props = FOOD_PROPERTIES[food_type_param]
 
         food = Food(
             id=food_id,
-            type=food_type,
-            quantity=quantity,
+            type=food_type_param,
+            quantity=quantity_param,
             max_quantity=props["max_quantity"],
             regeneration_hours=props["regeneration_hours"],
             seed=seed,
