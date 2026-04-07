@@ -384,29 +384,90 @@ def cmd_slash_list():
 
 
 def cmd_slash_completions(prefix=""):
-    """获取命令自动完成建议"""
-    try:
-        from slash_commands import SlashCommandRegistry
-        
-        registry = SlashCommandRegistry()
-        completions = registry.get_command_completions(prefix)
-        
-        if not completions:
-            return f"❌ 没有找到以 '{prefix}' 开头的命令"
-        
-        output = f"""
+     """获取命令自动完成建议"""
+     try:
+         from slash_commands import SlashCommandRegistry
+         
+         registry = SlashCommandRegistry()
+         completions = registry.get_command_completions(prefix)
+         
+         if not completions:
+             return f"❌ 没有找到以 '{prefix}' 开头的命令"
+         
+         output = f"""
 ╔════════════════════════════════════════════╗
 ║  🔍 '/monster {prefix}' 的自动完成建议
 ╚════════════════════════════════════════════╝
 
 """
+         
+         for comp in completions:
+             output += f"• /monster {comp['label']:<20} - {comp['detail']}\n"
+         
+         return output
+     except Exception as e:
+         return f"❌ 获取自动完成失败: {str(e)}"
+
+
+# ========== GitHub CLI Integration ==========
+
+def cmd_simple_start():
+    """简化的启动命令 - 自动从 gh cli 获取用户名并启动菜单"""
+    try:
+        from github_cli_integration import get_github_cli
+        from user_manager import UserManager
+        from menu_system import MenuManager
         
-        for comp in completions:
-            output += f"• /monster {comp['label']:<20} - {comp['detail']}\n"
+        # 获取 GitHub CLI 实例
+        gh = get_github_cli()
         
+        # 检查是否已认证
+        if not gh.is_authenticated():
+            output = """
+╔════════════════════════════════════════════╗
+║  🔑 GitHub 登录
+╚════════════════════════════════════════════╝
+
+检测到你还未登录 GitHub CLI。
+
+请执行以下命令进行登录:
+  
+  gh auth login
+
+然后选择:
+  - What is your preferred protocol? → HTTPS
+  - Authenticate Git with your GitHub credentials? → Yes
+  - How would you like to authenticate? → Paste an authentication token
+
+登录完成后，请重新运行 /monster 命令！
+"""
+            return output
+        
+        # 获取用户名
+        username = gh.get_current_user()
+        user_info = gh.get_user_info()
+        
+        # 确保用户在系统中注册
+        user_mgr = UserManager()
+        try:
+            user = user_mgr.get_user_by_github_id(username)
+        except:
+            # 如果用户不存在，自动注册
+            user = user_mgr.register_user(username)
+        
+        # 启动菜单
+        menu_mgr = MenuManager(str(MONSTER_DIR))
+        menu_text, options = menu_mgr.start_session(username)
+        
+        # 构建欢迎消息
+        welcome = gh.format_welcome_message()
+        
+        output = welcome + "\n" + menu_text
         return output
+        
     except Exception as e:
-        return f"❌ 获取自动完成失败: {str(e)}"
+        import traceback
+        return f"❌ 启动游戏失败: {str(e)}\n\n错误详情:\n{traceback.format_exc()}"
 
 
 def cmd_init():
@@ -1361,6 +1422,15 @@ def mcp_loop():
                                 "required": []
                             },
                         },
+                        {
+                            "name": "monster_simple_start",
+                            "description": "Start Agent Monster with automatic GitHub login (simplified command)",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {},
+                                "required": []
+                            },
+                        },
                     ]
                 }
 
@@ -1480,6 +1550,9 @@ def mcp_loop():
                     resp["result"] = {"content": [{"type": "text", "text": out}]}
                 elif tool == "monster_slash_completions":
                     out = cmd_slash_completions(args.get("prefix", ""))
+                    resp["result"] = {"content": [{"type": "text", "text": out}]}
+                elif tool == "monster_simple_start":
+                    out = cmd_simple_start()
                     resp["result"] = {"content": [{"type": "text", "text": out}]}
                 else:
                     resp["error"] = {"code": -32601, "message": f"Unknown tool: {tool}"}

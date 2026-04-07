@@ -66,6 +66,16 @@ class SlashCommandRegistry:
     def _register_commands(self):
         """注册所有可用命令"""
         
+        # ====== 快速启动命令 ======
+        self.register(SlashCommand(
+            name="start",
+            description="快速启动游戏 (自动从 GitHub CLI 获取用户名)",
+            category=CommandCategory.MENU,
+            usage="/monster start",
+            long_description="使用最简单的方式启动游戏。自动从 gh CLI 获取你的 GitHub 用户名，无需手动输入。",
+            params=[]
+        ))
+        
         # ====== 菜单命令 ======
         self.register(SlashCommand(
             name="menu",
