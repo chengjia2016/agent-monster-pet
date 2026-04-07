@@ -1,7 +1,8 @@
 # Agent Monster 上线测试报告
 
 **测试时间:** 2026-04-07  
-**测试邮箱:** seekvideo@gmail.com
+**测试邮箱:** seekvideo@gmail.com  
+**GitHub 仓库:** https://github.com/chengjia2016/agent-monster-pet.git
 
 ---
 
@@ -131,6 +132,27 @@ user.name = seekvideo
 
 ---
 
+### 8. GitHub 仓库推送 ✅
+
+**推送命令:**
+```bash
+git push -u origin main
+```
+
+**推送结果:**
+```
+✅ 推送成功！
+```
+
+**仓库地址:**
+```
+https://github.com/chengjia2016/agent-monster-pet.git
+```
+
+**测试结果:** ✅ 代码已推送到 GitHub
+
+---
+
 ## 测试总结
 
 | 系统 | 状态 | 备注 |
@@ -143,27 +165,53 @@ user.name = seekvideo
 | 战斗系统 | ✅ 通过 | 战斗模拟正常 |
 | GitHub Actions | ✅ 通过 | 3 个工作流就绪 |
 | Git 配置 | ✅ 通过 | 用户配置完成 |
+| GitHub 推送 | ✅ 通过 | 代码已推送 |
 
 ---
 
 ## 下一步操作
 
-1. **推送到 GitHub** - 将整个项目推送到 GitHub 仓库
-2. **启用 Actions** - 在 GitHub 上启用 3 个工作流
-3. **配置 MCP** - 在 Claude Code 中配置 MCP 服务器
-4. **开始游戏** - 埋零食、等孵化、参与战斗
+### 1. 启用 GitHub Actions
 
----
+访问仓库：https://github.com/chengjia2016/agent-monster-pet/actions
 
-## 推送命令
+启用以下工作流：
+- hourly-settlement.yml (每小时结算)
+- daily-rank.yml (每日排行)
+- battle-arena.yml (战斗竞技场)
+
+### 2. 配置 MCP 服务器
+
+在 `~/.claude/settings.json` 中添加：
+
+```json
+{
+  "mcpServers": {
+    "agent-monster": {
+      "command": "python",
+      "args": ["mcp_server.py", "mcp"],
+      "cwd": "C:/Users/Administrator/agentmonster"
+    }
+  }
+}
+```
+
+### 3. 开始游戏
 
 ```bash
-git add -A
-git commit -m "Initial commit: Agent Monster game system"
-git remote add origin https://github.com/seekvideo/agent-monster-pet.git
-git push -u origin main
+# 查看宠物状态
+/monster status
+
+# 埋零食
+# 🍪 agent_monster cookie 0x...
+
+# 发起战斗
+/monster duel opponent/repo
 ```
 
 ---
 
 **测试状态:** ✅ 全部通过，可以上线！
+
+**上线时间:** 2026-04-07  
+**上线版本:** v1.0.0
