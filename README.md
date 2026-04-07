@@ -20,7 +20,7 @@ gh repo fork agent-monster/agent-monster-pet
 ### 2. Clone to Your Local Machine
 
 ```bash
-git clone https://github.com/your-name/agent-monster-pet.git
+git clone https://github.com/chengjia2016/agent-monster-pet
 cd agent-monster-pet
 ```
 
