@@ -429,17 +429,23 @@ def format_commands_list() -> str:
                 output += f"  /{cmd.name:<30} {cmd.description}\n"
             output += "\n"
     
-    output += """
+     output += """
 💡 使用方法:
-  在 OpenCode 中输入 / 会自动显示命令提示
-  输入 /monster 可以看到所有 Agent Monster 相关命令
-  输入 /monster help 查看完整帮助
+  最简单: /monster                    - 一步启动（自动获取 GitHub 用户）
+  
+  或者:   /monster menu username:you  - 需要输入 GitHub 用户名
+         /monster help               - 查看完整帮助
+
+💙 前置要求:
+  - 已安装 GitHub CLI (gh auth login)
+  - 已在 .claude/settings.json 配置 MCP 服务器
 
 📚 获取帮助:
   /monster help [命令名]  - 查看特定命令的详细帮助
+  /monster help           - 查看所有可用命令
 """
-    
-    return output
+     
+     return output
 
 
 if __name__ == "__main__":
