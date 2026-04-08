@@ -189,6 +189,7 @@ def cmd_shop_buy(github_username, item_id, quantity=1):
         from user_manager import UserManager
         from economy_manager import EconomyManager
         from shop_manager import Shop
+        import time
         
         user_manager = UserManager(str(MONSTER_DIR))
         economy_manager = EconomyManager(str(MONSTER_DIR))
@@ -206,28 +207,31 @@ def cmd_shop_buy(github_username, item_id, quantity=1):
         # Calculate total cost
         total_cost = item.price * quantity
         
-        # Try to purchase
-        account = economy_manager.get_account(user.user_id)
-        if not account:
-            return "❌ Account not found"
+        # Try to purchase through judge server
+        purchase_request = {
+            "player_id": user.user_id,
+            "item_id": item_id,
+            "quantity": quantity,
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        }
         
-        if not account.has_sufficient_balance(total_cost):
-            return f"❌ Insufficient balance. Need {total_cost} coins, have {account.balance} coins"
+        judge_result = call_judge_server("/api/shop/buy", purchase_request)
         
-        # Process purchase
-        success = economy_manager.purchase_item(user.user_id, item.name, total_cost, item_id)
-        
-        if success:
-            new_balance = economy_manager.get_account(user.user_id).balance
-            return f"""✅ Purchase Successful!
+        if judge_result.get("success", False):
+            # Judge server confirmed the purchase
+            remaining_balance = judge_result.get("remaining_coins", 0)
+            return f"""✅ Purchase Successful (via Judge Server)!
 ===
 Item: {item.name}
 Quantity: {quantity}
 Cost: {total_cost} Coins
-New Balance: {new_balance} Coins
+New Balance: {remaining_balance} Coins
 """
         else:
-            return "❌ Purchase failed"
+            # Judge server rejected
+            error = judge_result.get("error") or judge_result.get("Error") or "Unknown error"
+            return f"❌ Purchase failed: {error}"
+            
     except Exception as e:
         return f"❌ Error purchasing item: {str(e)}"
 

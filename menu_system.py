@@ -10,11 +10,17 @@ from typing import Optional, Dict, List, Tuple, Any
 from dataclasses import dataclass, asdict
 from enum import Enum
 import os
+import time
+import urllib.request
+import urllib.error
 
 from user_manager import UserManager
 from economy_manager import EconomyManager
 from shop_manager import Shop
 from onboarding_manager import OnboardingManager
+
+# Judge Server Configuration
+JUDGE_SERVER = "http://agentmonster.openx.pro:10000"
 
 
 class MenuType(Enum):
@@ -40,6 +46,22 @@ class MenuSession:
     def __post_init__(self):
         if self.history is None:
             self.history = []
+
+
+def call_judge_server(endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    """调用裁判服务器 API"""
+    try:
+        url = f"{JUDGE_SERVER}{endpoint}"
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(data).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=10) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except Exception as e:
+        return {"success": False, "error": str(e), "judge": "unavailable"}
 
 
 class MenuManager:
@@ -394,25 +416,32 @@ GitHub ID: {user.github_id}
                     items = list(self.shop.list_items())
                     if 1 <= choice <= len(items):
                         item = items[choice - 1]
-                        # Process purchase
+                        # Process purchase via judge server
                         user = self._find_user_by_login(github_login)
                         if user:
-                            account = self.economy_manager.get_account(user.user_id)
-                            if account and account.has_sufficient_balance(item.price):
-                                success = self.economy_manager.purchase_item(user.user_id, item.name, item.price, item.item_id)
-                                if success:
-                                    new_balance = self.economy_manager.get_account(user.user_id).balance
-                                    return True, f"""✅ 购买成功!
+                            # Call judge server for purchase
+                            purchase_request = {
+                                "player_id": user.user_id,
+                                "item_id": item.item_id,
+                                "quantity": 1,
+                                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                            }
+                            
+                            judge_result = call_judge_server("/api/shop/buy", purchase_request)
+                            
+                            if judge_result.get("success", False):
+                                # Judge server confirmed the purchase
+                                remaining_balance = judge_result.get("remaining_coins", item.price)
+                                return True, f"""✅ 购买成功 (通过裁判服务器)!
 ===
 物品: {item.name}
 价格: {item.price} 精灵币
-新余额: {new_balance} 精灵币
+新余额: {remaining_balance} 精灵币
 
 请选择返回菜单 (0)"""
-                                else:
-                                    return True, "❌ 购买失败"
                             else:
-                                return True, f"❌ 余额不足。需要 {item.price} 精灵币，当前余额 {account.balance if account else 0} 精灵币"
+                                error = judge_result.get("error") or judge_result.get("Error") or "未知错误"
+                                return True, f"❌ 购买失败: {error}"
                         else:
                             return True, "❌ 用户不存在"
                     else:
