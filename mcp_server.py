@@ -252,12 +252,23 @@ def cmd_inventory_view(github_username):
         
         output = f"📦 Inventory for {github_username}\n===\n"
         total_items = 0
-        for item_id, quantity in inventory.items():
-            item = shop.get_item(item_id)
-            if item:
-                output += f"\n{item.name} x{quantity}\n"
+        for item_id, item_info in inventory.items():
+            if isinstance(item_info, dict):
+                # New format: item_info contains 'item', 'quantity', 'total_value'
+                item_name = item_info.get('item', {}).get('name', item_id)
+                quantity = item_info.get('quantity', 0)
+                total_value = item_info.get('total_value', 0)
+                output += f"\n{item_name} x{quantity}\n"
                 output += f"  ID: {item_id}\n"
+                output += f"  Total Value: {total_value} Coins\n"
                 total_items += quantity
+            else:
+                # Old format: item_info is just the quantity
+                item = shop.get_item(item_id)
+                if item:
+                    output += f"\n{item.name} x{item_info}\n"
+                    output += f"  ID: {item_id}\n"
+                    total_items += item_info
         
         output += f"\n\nTotal Items: {total_items}\n"
         return output
@@ -282,17 +293,24 @@ def cmd_account_stats(github_username):
         if not account:
             return f"❌ No account found for {github_username}"
         
-        stats = account.get_stats()
+        # Calculate totals from transactions
+        total_earned = 0
+        total_spent = 0
+        for tx in account.transactions:
+            if tx.amount < 0:
+                total_spent += abs(tx.amount)
+            else:
+                total_earned += tx.amount
         
         output = f"📊 Account Statistics for {github_username}\n===\n"
         output += f"\nBalance: {account.balance} Coins\n"
-        output += f"Total Income: {stats.get('total_earned', 0)} Coins\n"
-        output += f"Total Expenses: {stats.get('total_spent', 0)} Coins\n"
+        output += f"Total Income: {total_earned} Coins\n"
+        output += f"Total Expenses: {total_spent} Coins\n"
         output += f"Transaction Count: {len(account.transactions)}\n"
         
         output += f"\n\nRecent Transactions (Last 5):\n"
         for tx in account.transactions[-5:]:
-            output += f"\n  {tx['type']}: {tx.get('amount', 0)} coins - {tx['timestamp']}\n"
+            output += f"\n  {tx.description}: {tx.amount} coins - {tx.created_at}\n"
         
         return output
     except Exception as e:
