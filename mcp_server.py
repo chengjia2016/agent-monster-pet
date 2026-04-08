@@ -198,19 +198,36 @@ def cmd_shop_buy(github_username, item_id, quantity=1):
         if not user:
             return f"❌ User '{github_username}' not found"
         
-        # Try to purchase
-        result = economy_manager.purchase_item(user.user_id, item_id, quantity)
+        # Get item from shop
+        item = shop.get_item(item_id)
+        if not item:
+            return f"❌ Item '{item_id}' not found in shop"
         
-        if result.get("success"):
+        # Calculate total cost
+        total_cost = item.price * quantity
+        
+        # Try to purchase
+        account = economy_manager.get_account(user.user_id)
+        if not account:
+            return "❌ Account not found"
+        
+        if not account.has_sufficient_balance(total_cost):
+            return f"❌ Insufficient balance. Need {total_cost} coins, have {account.balance} coins"
+        
+        # Process purchase
+        success = economy_manager.purchase_item(user.user_id, item.name, total_cost, item_id)
+        
+        if success:
+            new_balance = economy_manager.get_account(user.user_id).balance
             return f"""✅ Purchase Successful!
 ===
-Item: {result.get('item_name')}
+Item: {item.name}
 Quantity: {quantity}
-Cost: {result.get('cost')} Coins
-New Balance: {result.get('new_balance')} Coins
+Cost: {total_cost} Coins
+New Balance: {new_balance} Coins
 """
         else:
-            return f"❌ Purchase failed: {result.get('error', 'Unknown error')}"
+            return "❌ Purchase failed"
     except Exception as e:
         return f"❌ Error purchasing item: {str(e)}"
 
@@ -787,7 +804,7 @@ def cmd_farm(action="view"):
             )
             manager.add_food_to_farm(farm, "cookie", 3)
             manager.add_food_to_farm(farm, "apple", 5)
-            manager.save_farm_to_file(farm, MONSTER_DIR / "farm.yaml")
+            manager.save_farm_to_file("player", "agent-monster", str(MONSTER_DIR / "farm.yaml"))
             return "✅ Farm created successfully!"
         
         return "Unknown farm action"
