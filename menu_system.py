@@ -178,7 +178,10 @@ class MenuManager:
         """渲染账户菜单"""
         user = self._find_user_by_login(github_login)
         account = self.economy_manager.get_account(user.user_id)
-        stats = account.get_stats() if account else {}
+        
+        # 计算统计数据
+        total_earned = sum(t.amount for t in (account.transactions or []) if t.trans_type.value == "income")
+        total_spent = sum(t.amount for t in (account.transactions or []) if t.trans_type.value == "expense")
         
         menu_text = f"""
 ╔════════════════════════════════════════╗
@@ -191,8 +194,8 @@ GitHub ID: {user.github_id}
 
 💰 账户统计:
   当前余额: {account.balance if account else 0} 精灵币
-  总收入: {stats.get('total_earned', 0)} 精灵币
-  总支出: {stats.get('total_spent', 0)} 精灵币
+  总收入: {total_earned} 精灵币
+  总支出: {total_spent} 精灵币
   交易次数: {len(account.transactions) if account else 0}
 
 📊 最近5笔交易:
@@ -200,7 +203,7 @@ GitHub ID: {user.github_id}
         
         if account and account.transactions:
             for tx in account.transactions[-5:]:
-                menu_text += f"  • {tx['type']}: {tx.get('amount', 0)} coins - {tx['timestamp']}\n"
+                menu_text += f"  • {tx.trans_type.value}: {tx.amount} coins - {tx.created_at}\n"
         else:
             menu_text += "  暂无交易记录\n"
         
