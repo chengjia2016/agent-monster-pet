@@ -394,11 +394,31 @@ GitHub ID: {user.github_id}
                     items = list(self.shop.list_items())
                     if 1 <= choice <= len(items):
                         item = items[choice - 1]
-                        return True, f"你选择了: {item.name}\n请确认购买 (开发中)"
+                        # Process purchase
+                        user = self.user_manager.get_user_by_github_login(github_login)
+                        if user:
+                            account = self.economy_manager.get_account(user.user_id)
+                            if account and account.has_sufficient_balance(item.price):
+                                success = self.economy_manager.purchase_item(user.user_id, item.name, item.price, item.item_id)
+                                if success:
+                                    new_balance = self.economy_manager.get_account(user.user_id).balance
+                                    return True, f"""✅ 购买成功!
+===
+物品: {item.name}
+价格: {item.price} 精灵币
+新余额: {new_balance} 精灵币
+
+请选择返回菜单 (0)"""
+                                else:
+                                    return True, "❌ 购买失败"
+                            else:
+                                return True, f"❌ 余额不足。需要 {item.price} 精灵币，当前余额 {account.balance if account else 0} 精灵币"
+                        else:
+                            return True, "❌ 用户不存在"
                     else:
                         return True, "❌ 无效选择"
-                except:
-                    return True, "❌ 请输入有效的编号"
+                except Exception as e:
+                    return True, f"❌ 购买出错: {str(e)}"
         
         elif current_menu == MenuType.HELP:
             if action == "0":
