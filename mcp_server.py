@@ -135,6 +135,16 @@ def cmd_user_info(github_username=""):
         
         account = economy_manager.get_account(user.user_id)
         
+        # Calculate totals from transactions
+        total_spent = 0
+        total_earned = 0
+        if account:
+            for transaction in account.transactions:
+                if transaction.amount < 0:
+                    total_spent += abs(transaction.amount)
+                else:
+                    total_earned += transaction.amount
+        
         return f"""👤 User Profile
 ===
 Username: {user.github_login}
@@ -144,8 +154,8 @@ Last Login: {user.last_login}
 
 💰 Account Info:
 Balance: {account.balance if account else 0} Elemental Coins
-Total Spent: {account.get_total_spent() if account else 0}
-Total Earned: {account.get_total_earned() if account else 0}
+Total Spent: {total_spent} Elemental Coins
+Total Earned: {total_earned} Elemental Coins
 Transactions: {len(account.transactions) if account else 0}
 """
     except Exception as e:
