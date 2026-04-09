@@ -639,12 +639,7 @@ func claimStarterPokemonsCmd(a *App) tea.Cmd {
 			fmt.Printf("Warning: Failed to claim starter pokemons: %v\n", err)
 		}
 
-		// Mark as claimed
-		a.OnboardingState.PokemonsClaimed = true
-
-		// Move to complete screen
-		a.OnboardingState.CurrentStep = int(OnboardingCompleteScreen)
-
+		// Return message to trigger Update() to handle state transition
 		return OnboardingOperationMsg{
 			Operation: "claiming",
 			Success:   true,

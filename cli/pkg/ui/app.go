@@ -139,6 +139,11 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.OnboardingState.CurrentStep = int(OnboardingClaimingScreen)
 			// Trigger the claiming operation in a command
 			return a, claimStarterPokemonsCmd(a)
+		case "claiming":
+			// Claiming operation completed, move to complete screen
+			a.OnboardingState.PokemonsClaimed = true
+			a.OnboardingState.CurrentStep = int(OnboardingCompleteScreen)
+			a.OnboardingState.Message = "✅ 宝可梦领取成功！"
 		}
 		return a, nil
 
