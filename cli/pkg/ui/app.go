@@ -129,6 +129,12 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.CurrentUser = msg.User
 			a.AccountSelectState.Message = fmt.Sprintf("已切换到账户: %s", msg.User.Login)
 
+			// Reinitialize GitHub client for new account
+			ghClient, err := github.NewGitHubClient()
+			if err == nil {
+				a.GitHub = ghClient
+			}
+
 			// Sync with server
 			if msg.User.ID > 0 {
 				_, err := a.Client.CreateOrGetUserAccount(msg.User.ID, msg.User.Login)
@@ -139,10 +145,17 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 
-			// Update profile
+			// Update profile with correct GitHub ID
 			if a.UserManager != nil {
-				a.UserManager.GetOrCreateProfile(msg.User.Login, 0)
+				a.UserManager.GetOrCreateProfile(msg.User.Login, msg.User.ID)
 				a.UserProfile, _ = a.UserManager.GetProfile(msg.User.Login)
+			}
+
+			// Reset account selection state
+			a.AccountSelectState = &AccountSelectState{
+				Accounts:      make([]github.AuthAccount, 0),
+				SelectedIndex: 0,
+				Loading:       false,
 			}
 
 			// Move to main menu
