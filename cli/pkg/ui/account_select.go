@@ -39,12 +39,14 @@ func (a *App) renderAccountSelectScreen() string {
 			status = " (当前)"
 		}
 
+		line := fmt.Sprintf("%s - %s%s", account.Hostname, account.Username, status)
+
 		if i == a.AccountSelectState.SelectedIndex {
-			content.WriteString(StyleMenuItemSelected.Render(
-				fmt.Sprintf("  ▶ %s - %s%s\n", account.Hostname, account.Username, status)))
+			// Selected item - simple styling without borders
+			content.WriteString("  ▶ " + StyleSuccess.Background(ColorAccent).Render(line) + "\n")
 		} else {
-			content.WriteString(StyleMenuItem.Render(
-				fmt.Sprintf("    %s - %s%s\n", account.Hostname, account.Username, status)))
+			// Unselected item
+			content.WriteString("    " + line + "\n")
 		}
 	}
 
