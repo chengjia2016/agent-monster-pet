@@ -506,8 +506,8 @@ func (a *App) ForkRepository() error {
 	}
 
 	// Fork the agent-monster repository
-	// Assuming the repository is "anomalyco/agent-monster"
-	return a.GitHub.ForkRepository("anomalyco", "agent-monster")
+	// Use the correct source repository: chengjia2016/agent-monster
+	return a.GitHub.ForkRepository("chengjia2016", "agent-monster")
 }
 
 // CreateBase creates the user's defense base
