@@ -3,6 +3,7 @@ package ui
 import (
 	"agent-monster-cli/pkg/api"
 	"agent-monster-cli/pkg/github"
+	"agent-monster-cli/pkg/logger"
 	"agent-monster-cli/pkg/user"
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
@@ -117,8 +118,12 @@ func (a *App) Init() tea.Cmd {
 func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case OnboardingOperationMsg:
+		log := logger.Get()
+		log.Info("[Update] Received OnboardingOperationMsg: operation=%s, success=%v, error=%s, loading_before=%v",
+			msg.Operation, msg.Success, msg.Error, a.OnboardingState.Loading)
 		// Handle onboarding operation result
 		a.OnboardingState.Loading = false
+		log.Info("[Update] Set loading=false")
 
 		if !msg.Success {
 			a.OnboardingState.Error = msg.Error
@@ -136,6 +141,7 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.OnboardingState.Message = "✅ 基地创建成功！"
 			a.OnboardingState.CurrentStep = int(OnboardingTemplateScreen)
 		case "generatemap":
+			log.Info("[Update] Moving from MapPreview to Claiming screen")
 			a.OnboardingState.CurrentStep = int(OnboardingClaimingScreen)
 			// Trigger the claiming operation in a command
 			return a, claimStarterPokemonsCmd(a)

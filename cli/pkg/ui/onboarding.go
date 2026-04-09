@@ -469,8 +469,13 @@ func (a *App) HandleOnboardingInput(msg tea.KeyMsg, currentStep OnboardingStep) 
 	case OnboardingMapPreviewScreen:
 		switch msg.String() {
 		case "enter":
+			log.Info("Step 5: User pressed Enter to generate map")
+			log.Info("Before: Loading=%v, CurrentStep=%d", a.OnboardingState.Loading, a.OnboardingState.CurrentStep)
 			a.OnboardingState.Loading = true
-			return a, generateMapCmd(a)
+			log.Info("After: Loading=%v, CurrentStep=%d", a.OnboardingState.Loading, a.OnboardingState.CurrentStep)
+			cmd := generateMapCmd(a)
+			log.Info("Generated map command, cmd is nil=%v", cmd == nil)
+			return a, cmd
 		case "esc":
 			a.CurrentScreen = MainMenuScreen
 		}
