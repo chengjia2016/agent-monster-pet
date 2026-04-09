@@ -13,6 +13,7 @@ type Screen int
 
 const (
 	LoginScreen Screen = iota
+	AccountSelectScreen
 	MainMenuScreen
 	PokemonListScreen
 	BattleScreen
@@ -39,6 +40,15 @@ type GitHubScreenState struct {
 	PRState      string // "open" or "closed"
 }
 
+// AccountSelectState tracks account selection state
+type AccountSelectState struct {
+	Accounts      []github.AuthAccount
+	SelectedIndex int
+	Loading       bool
+	Error         string
+	Message       string
+}
+
 // MapState tracks map screen state
 type MapState struct {
 	CurrentMap       *api.MapData
@@ -52,22 +62,23 @@ type MapState struct {
 
 // App 是主应用模型
 type App struct {
-	Client          *api.Client
-	GitHub          *github.GitHubClient
-	UserManager     *user.Manager
-	CurrentScreen   Screen
-	Width           int
-	Height          int
-	SelectedIndex   int
-	Loading         bool
-	Error           string
-	Message         string
-	CurrentUser     *github.User
-	UserProfile     *user.UserProfile
-	GitHubState     *GitHubScreenState
-	MapState        *MapState
-	PreviousScreen  Screen
-	OnboardingState *OnboardingState
+	Client             *api.Client
+	GitHub             *github.GitHubClient
+	UserManager        *user.Manager
+	CurrentScreen      Screen
+	Width              int
+	Height             int
+	SelectedIndex      int
+	Loading            bool
+	Error              string
+	Message            string
+	CurrentUser        *github.User
+	UserProfile        *user.UserProfile
+	GitHubState        *GitHubScreenState
+	MapState           *MapState
+	PreviousScreen     Screen
+	OnboardingState    *OnboardingState
+	AccountSelectState *AccountSelectState
 }
 
 // NewApp 创建新应用实例
@@ -89,6 +100,11 @@ func NewApp(client *api.Client, userDir string) *App {
 			SelectedNPCs:     make([]bool, 0),
 			InputBuffer:      "",
 		},
+		AccountSelectState: &AccountSelectState{
+			Accounts:      make([]github.AuthAccount, 0),
+			SelectedIndex: 0,
+			Loading:       false,
+		},
 	}
 }
 
@@ -101,6 +117,11 @@ func (a *App) Init() tea.Cmd {
 func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// Handle account select screen separately
+		if a.CurrentScreen == AccountSelectScreen {
+			return a.handleAccountSelect(msg)
+		}
+
 		// Handle map input screen separately
 		if a.CurrentScreen == MapInputScreen {
 			return a.HandleMapInputScreenInput(msg)
@@ -157,6 +178,8 @@ func (a *App) View() string {
 	switch a.CurrentScreen {
 	case LoginScreen:
 		content = a.renderLoginScreen()
+	case AccountSelectScreen:
+		content = a.renderAccountSelectScreen()
 	case MainMenuScreen:
 		content = a.mainMenuView()
 	case PokemonListScreen:
@@ -253,6 +276,18 @@ func (a *App) handleMenuSelect() (*App, tea.Cmd) {
 			}
 			a.GitHub = ghClient
 		}
+
+		// Check if there are multiple GitHub accounts logged in
+		accounts, err := github.GetAuthAccounts()
+		if err == nil && len(accounts) > 1 {
+			// Multiple accounts found, show selection screen
+			a.AccountSelectState.Accounts = accounts
+			a.AccountSelectState.SelectedIndex = 0
+			a.CurrentScreen = AccountSelectScreen
+			a.SelectedIndex = 0
+			return a, nil
+		}
+
 		// Get current user info
 		currentUser, err := a.GitHub.GetCurrentUser()
 		if err == nil {

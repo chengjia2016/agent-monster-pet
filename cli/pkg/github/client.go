@@ -19,6 +19,13 @@ type GitHubClient struct {
 	Client  *http.Client
 }
 
+// AuthAccount represents a GitHub authentication account
+type AuthAccount struct {
+	Hostname string
+	Username string
+	Active   bool
+}
+
 // Repository represents a GitHub repository
 type Repository struct {
 	Name        string `json:"name"`
@@ -102,6 +109,66 @@ func IsGitHubLoggedIn() bool {
 	cmd := exec.Command("gh", "auth", "status")
 	err := cmd.Run()
 	return err == nil
+}
+
+// GetAuthAccounts retrieves all logged-in GitHub accounts
+func GetAuthAccounts() ([]AuthAccount, error) {
+	cmd := exec.Command("gh", "auth", "status", "--show-token")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get auth status: %w", err)
+	}
+
+	// Parse the output to extract account information
+	lines := strings.Split(string(output), "\n")
+	var accounts []AuthAccount
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		// Parse lines like:
+		// "Logged in to github.com as username (keyring)"
+		// or just check for presence
+		if strings.Contains(line, "Logged in to") {
+			// Try to extract hostname and username
+			if strings.Contains(line, "as") {
+				parts := strings.Split(line, "as")
+				if len(parts) >= 2 {
+					hostPart := strings.TrimSpace(strings.TrimPrefix(parts[0], "Logged in to"))
+					userPart := strings.TrimSpace(parts[1])
+					// Remove parentheses and other text
+					userPart = strings.Split(userPart, "(")[0]
+					userPart = strings.TrimSpace(userPart)
+
+					if hostPart != "" && userPart != "" {
+						accounts = append(accounts, AuthAccount{
+							Hostname: hostPart,
+							Username: userPart,
+							Active:   true,
+						})
+					}
+				}
+			}
+		}
+	}
+
+	if len(accounts) == 0 {
+		return nil, fmt.Errorf("no GitHub accounts found")
+	}
+
+	return accounts, nil
+}
+
+// SwitchAccount switches to a different GitHub account
+func SwitchAccount(hostname, username string) error {
+	// Note: gh CLI doesn't have a direct "switch" command
+	// Instead, we would need to manage credentials through the CLI
+	// This sets the active account in the gh config
+	cmd := exec.Command("gh", "auth", "switch", "-h", hostname)
+	return cmd.Run()
 }
 
 // LoginToGitHub opens the GitHub login flow
