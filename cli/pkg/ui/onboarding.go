@@ -474,6 +474,16 @@ func (a *App) GenerateOnboardingMap() error {
 	return nil
 }
 
+// ClaimStarterPokemons claims starter pokemons (1 Psyduck + 2 Eggs) for the user during onboarding
+func (a *App) ClaimStarterPokemons() error {
+	if a.CurrentUser == nil || a.CurrentUser.ID == 0 {
+		return fmt.Errorf("user not authenticated")
+	}
+
+	_, err := a.Client.ClaimStarterPokemons(a.CurrentUser.ID)
+	return err
+}
+
 // renderOnboarding renders the current step of onboarding
 func (a *App) renderOnboarding() string {
 	step := a.OnboardingState.CurrentStep
@@ -549,7 +559,7 @@ func createBaseCmd(a *App) tea.Cmd {
 	}
 }
 
-// generateMapCmd creates a Bubble Tea command for generating map
+// generateMapCmd creates a Bubble Tea command for generating map and claiming starter pokemons
 func generateMapCmd(a *App) tea.Cmd {
 	return func() tea.Msg {
 		if err := a.GenerateOnboardingMap(); err != nil {
@@ -559,6 +569,14 @@ func generateMapCmd(a *App) tea.Cmd {
 				Error:     fmt.Sprintf("生成地图失败: %v", err),
 			}
 		}
+
+		// After generating map successfully, claim starter pokemons
+		if err := a.ClaimStarterPokemons(); err != nil {
+			// Log the error but don't fail the onboarding completion
+			// User successfully completed onboarding, just couldn't claim pokemons
+			fmt.Printf("Warning: Failed to claim starter pokemons: %v\n", err)
+		}
+
 		return OnboardingOperationMsg{
 			Operation: "generatemap",
 			Success:   true,

@@ -447,3 +447,22 @@ func (c *Client) TraverseMap(currentMapID, direction string) (*MapData, error) {
 
 	return mapData, nil
 }
+
+// ClaimStarterPokemons claims starter pokemons for a user during onboarding
+func (c *Client) ClaimStarterPokemons(githubID int) (map[string]interface{}, error) {
+	payload := map[string]interface{}{
+		"github_id": githubID,
+	}
+
+	data, err := c.Request("POST", "/api/user/claim-starter-pokemons", payload)
+	if err != nil {
+		return nil, err
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(data, &response); err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
