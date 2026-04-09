@@ -345,12 +345,20 @@ func (a *App) HandleOnboardingInput(msg tea.KeyMsg, currentStep OnboardingStep) 
 	case OnboardingTemplateScreen:
 		switch msg.String() {
 		case "up", "k":
+			templates := GetMapTemplates()
 			if a.OnboardingState.SelectedTemplate > 0 {
 				a.OnboardingState.SelectedTemplate--
+			} else {
+				// Wrap to last template
+				a.OnboardingState.SelectedTemplate = len(templates) - 1
 			}
 		case "down", "j":
-			if a.OnboardingState.SelectedTemplate < len(GetMapTemplates())-1 {
+			templates := GetMapTemplates()
+			if a.OnboardingState.SelectedTemplate < len(templates)-1 {
 				a.OnboardingState.SelectedTemplate++
+			} else {
+				// Wrap to first template
+				a.OnboardingState.SelectedTemplate = 0
 			}
 		case "enter":
 			a.OnboardingState.SelectedNPCs = make([]bool, len(GetMapTemplates()[a.OnboardingState.SelectedTemplate].NPCs))
@@ -433,6 +441,13 @@ func (a *App) ForkRepository() error {
 func (a *App) CreateBase() error {
 	// Call API to create base
 	_, err := a.Client.CreateBase(fmt.Sprintf("https://github.com/%s/agent-monster", a.CurrentUser.Login))
+
+	// If the error is about not having enough pokemons, that's expected in onboarding
+	// Just skip it for now - player can create base later after catching pokemons
+	if err != nil && strings.Contains(err.Error(), "needs at least 3 pokemons") {
+		return nil // Skip this error during onboarding
+	}
+
 	return err
 }
 
