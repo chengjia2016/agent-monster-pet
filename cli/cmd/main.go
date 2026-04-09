@@ -15,11 +15,13 @@ import (
 var (
 	serverURL string
 	debug     bool
+	autoMode  bool
 )
 
 func init() {
 	flag.StringVar(&serverURL, "server", "http://127.0.0.1:10000", "Judge server URL")
 	flag.BoolVar(&debug, "debug", false, "Enable debug mode")
+	flag.BoolVar(&autoMode, "auto", false, "Automatic mode (skip TTY, auto-proceed through onboarding)")
 	flag.Parse()
 }
 
@@ -47,6 +49,7 @@ func main() {
 	log.Info("Starting Agent Monster CLI")
 	log.Info("Server URL: %s", serverURL)
 	log.Info("Debug mode: %v", debug)
+	log.Info("Auto mode: %v", autoMode)
 	log.Info("User data directory: %s", userDir)
 	log.Info("Log directory: %s", logDir)
 
@@ -57,6 +60,18 @@ func main() {
 	// 创建应用
 	app := ui.NewApp(client, userDir)
 	log.Info("UI application initialized")
+
+	// 如果启用自动模式，在不需要TTY的情况下完成新手引导
+	if autoMode {
+		log.Info("Running in automatic mode (no TTY required)")
+		if err := app.RunAutoOnboarding(); err != nil {
+			log.Error("Auto onboarding error: %v", err)
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		log.Info("Auto onboarding completed successfully")
+		return
+	}
 
 	// 启动TUI
 	log.Info("Starting TUI program")
