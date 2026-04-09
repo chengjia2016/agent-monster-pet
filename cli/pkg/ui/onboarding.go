@@ -2,11 +2,13 @@ package ui
 
 import (
 	"agent-monster-cli/pkg/api"
+	"agent-monster-cli/pkg/logger"
 	"context"
 	"fmt"
-	tea "github.com/charmbracelet/bubbletea"
 	"strings"
 	"time"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 // OnboardingOperationMsg is sent when an onboarding operation completes
@@ -342,6 +344,9 @@ func (a *App) RenderOnboardingComplete() string {
 
 // HandleOnboardingInput processes input during onboarding
 func (a *App) HandleOnboardingInput(msg tea.KeyMsg, currentStep OnboardingStep) (*App, tea.Cmd) {
+	log := logger.Get()
+	log.Debug("Onboarding input: step=%v, key=%s", currentStep, msg.String())
+
 	switch currentStep {
 	case OnboardingWelcomeScreen:
 		switch msg.String() {
@@ -499,11 +504,21 @@ func (a *App) CreateBase() error {
 
 // GenerateOnboardingMap generates the map based on selected template and NPCs
 func (a *App) GenerateOnboardingMap() error {
+	log := logger.Get()
+	log.Section("生成新手引导地图")
+
+	log.Info("Starting map generation")
+	log.Debug("User: %s, Template: %d", a.CurrentUser.Login, a.OnboardingState.SelectedTemplate)
+
 	templates := GetMapTemplates()
 	_ = templates[a.OnboardingState.SelectedTemplate] // Ensure template exists
 
 	// Generate map based on template
 	mapID := fmt.Sprintf("%s_starter_%d", strings.ToLower(a.CurrentUser.Login), a.OnboardingState.SelectedTemplate+1)
+	log.Info("Generated map ID: %s", mapID)
+
+	log.Info("Calling API: GenerateMap(owner_id=%d, owner_name=%s, map_id=%s, width=20, height=20)",
+		a.CurrentUser.ID, a.CurrentUser.Login, mapID)
 
 	mapData, err := a.Client.GenerateMap(
 		a.CurrentUser.ID,
@@ -513,8 +528,12 @@ func (a *App) GenerateOnboardingMap() error {
 		20,
 	)
 	if err != nil {
+		log.Error("Map generation failed: %v", err)
 		return err
 	}
+
+	log.Info("Map generated successfully")
+	log.Debug("Map ID: %s, Size: %dx%d", mapData.MapID, mapData.Width, mapData.Height)
 
 	a.OnboardingState.GeneratedMap = mapData
 	return nil
@@ -522,12 +541,25 @@ func (a *App) GenerateOnboardingMap() error {
 
 // ClaimStarterPokemons claims starter pokemons (1 Psyduck + 2 Eggs) for the user during onboarding
 func (a *App) ClaimStarterPokemons() error {
+	log := logger.Get()
+	log.Section("领取初始宝可梦")
+
 	if a.CurrentUser == nil || a.CurrentUser.ID == 0 {
+		log.Error("User not authenticated: CurrentUser=%v, ID=%d", a.CurrentUser, a.CurrentUser.ID)
 		return fmt.Errorf("user not authenticated")
 	}
 
-	_, err := a.Client.ClaimStarterPokemons(a.CurrentUser.ID)
-	return err
+	log.Info("Claiming starter pokemons for user: %s (ID: %d)", a.CurrentUser.Login, a.CurrentUser.ID)
+
+	result, err := a.Client.ClaimStarterPokemons(a.CurrentUser.ID)
+	if err != nil {
+		log.Error("Failed to claim starter pokemons: %v", err)
+		return err
+	}
+
+	log.Info("Successfully claimed starter pokemons")
+	log.Debug("API Response: %v", result)
+	return nil
 }
 
 // renderOnboarding renders the current step of onboarding
@@ -620,6 +652,10 @@ func createBaseCmd(a *App) tea.Cmd {
 // generateMapCmd creates a Bubble Tea command for generating map and claiming starter pokemons
 func generateMapCmd(a *App) tea.Cmd {
 	return func() tea.Msg {
+		log := logger.Get()
+		log.Section("地图生成命令执行")
+		log.Info("Starting map generation command")
+
 		// Create a context with timeout to prevent hanging
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
@@ -627,6 +663,7 @@ func generateMapCmd(a *App) tea.Cmd {
 		// Create a channel for the result
 		done := make(chan error, 1)
 		go func() {
+			log.Info("Goroutine: Starting GenerateOnboardingMap()")
 			done <- a.GenerateOnboardingMap()
 		}()
 
@@ -634,6 +671,7 @@ func generateMapCmd(a *App) tea.Cmd {
 		select {
 		case err := <-done:
 			if err != nil {
+				log.Error("Map generation error: %v", err)
 				return OnboardingOperationMsg{
 					Operation: "generatemap",
 					Success:   false,
@@ -641,6 +679,7 @@ func generateMapCmd(a *App) tea.Cmd {
 				}
 			}
 
+			log.Info("Map generation succeeded, moving to claiming stage")
 			// After generating map successfully, move to claiming screen
 			// The actual claiming will happen in claimStarterPokemonsCmd
 			return OnboardingOperationMsg{
@@ -649,6 +688,7 @@ func generateMapCmd(a *App) tea.Cmd {
 				Error:     "",
 			}
 		case <-ctx.Done():
+			log.Error("Map generation timeout (30 seconds)")
 			return OnboardingOperationMsg{
 				Operation: "generatemap",
 				Success:   false,
@@ -661,7 +701,12 @@ func generateMapCmd(a *App) tea.Cmd {
 // claimStarterPokemonsCmd creates a Bubble Tea command for claiming starter pokemons
 func claimStarterPokemonsCmd(a *App) tea.Cmd {
 	return func() tea.Msg {
+		log := logger.Get()
+		log.Section("领取宝可梦命令执行")
+		log.Info("Starting claiming pokemons command")
+
 		// Show claiming screen for 2 seconds
+		log.Info("Displaying claiming screen for 2 seconds")
 		time.Sleep(2 * time.Second)
 
 		// Create a context with timeout for claiming operation
@@ -671,6 +716,7 @@ func claimStarterPokemonsCmd(a *App) tea.Cmd {
 		// Create a channel for the result
 		done := make(chan error, 1)
 		go func() {
+			log.Info("Goroutine: Starting ClaimStarterPokemons()")
 			done <- a.ClaimStarterPokemons()
 		}()
 
@@ -679,11 +725,15 @@ func claimStarterPokemonsCmd(a *App) tea.Cmd {
 		case err := <-done:
 			if err != nil {
 				// Log the error but don't fail the onboarding completion
-				fmt.Printf("Warning: Failed to claim starter pokemons: %v\n", err)
+				log.Warn("Failed to claim starter pokemons: %v", err)
+			} else {
+				log.Info("Successfully claimed starter pokemons")
 			}
 		case <-ctx.Done():
-			fmt.Printf("Warning: Claiming pokemons timed out\n")
+			log.Warn("Claiming pokemons timed out (15 seconds)")
 		}
+
+		log.Info("Claiming complete, transitioning to completion screen")
 
 		// Return message to trigger Update() to handle state transition
 		return OnboardingOperationMsg{

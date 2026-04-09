@@ -1,6 +1,7 @@
 package api
 
 import (
+	"agent-monster-cli/pkg/logger"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -29,11 +30,15 @@ func NewClient(baseURL string) *Client {
 // Request 发送HTTP请求的通用方法
 func (c *Client) Request(method, endpoint string, body interface{}) ([]byte, error) {
 	url := c.BaseURL + endpoint
+	log := logger.Get()
+
+	log.APIRequest(method, endpoint, body)
 
 	var reqBody io.Reader
 	if body != nil {
 		jsonBody, err := json.Marshal(body)
 		if err != nil {
+			log.Error("Failed to marshal request body: %v", err)
 			return nil, fmt.Errorf("failed to marshal request body: %w", err)
 		}
 		reqBody = bytes.NewBuffer(jsonBody)
@@ -41,6 +46,7 @@ func (c *Client) Request(method, endpoint string, body interface{}) ([]byte, err
 
 	req, err := http.NewRequest(method, url, reqBody)
 	if err != nil {
+		log.Error("Failed to create request: %v", err)
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -48,20 +54,32 @@ func (c *Client) Request(method, endpoint string, body interface{}) ([]byte, err
 
 	resp, err := c.Client.Do(req)
 	if err != nil {
+		log.APIError(endpoint, err)
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
+		log.Error("Failed to read response body: %v", err)
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
+	log.APIResponse(resp.StatusCode, string(respBody)[:min(len(respBody), 200)])
+
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		log.Error("Request failed with status %d: %s", resp.StatusCode, string(respBody))
 		return nil, fmt.Errorf("request failed with status %d: %s", resp.StatusCode, string(respBody))
 	}
 
 	return respBody, nil
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // RequestWithQuery 发送带查询参数的HTTP请求
