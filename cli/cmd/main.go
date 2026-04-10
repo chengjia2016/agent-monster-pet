@@ -2,6 +2,7 @@ package main
 
 import (
 	"agent-monster-cli/pkg/api"
+	"agent-monster-cli/pkg/cli"
 	"agent-monster-cli/pkg/logger"
 	"agent-monster-cli/pkg/ui"
 	"flag"
@@ -26,6 +27,17 @@ func init() {
 }
 
 func main() {
+	// Check for map command before full initialization
+	args := flag.Args()
+	if len(args) > 0 && args[0] == "map" {
+		// Handle map command
+		if err := handleMapCommand(args[1:]); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	// 获取用户数据目录
 	userDir, err := getUserDataDir()
 	if err != nil {
@@ -82,6 +94,30 @@ func main() {
 		os.Exit(1)
 	}
 	log.Info("TUI program ended normally")
+}
+
+// handleMapCommand handles the map subcommand
+func handleMapCommand(args []string) error {
+	userDir, err := getUserDataDir()
+	if err != nil {
+		return fmt.Errorf("failed to get user data directory: %w", err)
+	}
+
+	// Initialize logger for map commands
+	logDir := filepath.Join(userDir, "logs")
+	logLevel := logger.INFO
+	if debug {
+		logLevel = logger.DEBUG
+	}
+
+	if err := logger.Init(logDir, logLevel); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: Failed to initialize logger: %v\n", err)
+	}
+	defer logger.Get().Close()
+
+	// Create and execute map command
+	mapCmd := cli.NewMapCommand(userDir)
+	return mapCmd.Execute(args)
 }
 
 // getUserDataDir returns the user data directory
