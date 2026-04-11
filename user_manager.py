@@ -25,7 +25,8 @@ class User:
         email: str = "",
         avatar_url: str = "",
         registered_at: str = None,
-        last_login: str = None
+        last_login: str = None,
+        language: str = "zh"  # Default to Chinese
     ):
         self.user_id = user_id
         self.github_login = github_login
@@ -34,6 +35,7 @@ class User:
         self.avatar_url = avatar_url
         self.registered_at = registered_at or datetime.utcnow().isoformat()
         self.last_login = last_login
+        self.language = language
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
@@ -44,7 +46,8 @@ class User:
             "email": self.email,
             "avatar_url": self.avatar_url,
             "registered_at": self.registered_at,
-            "last_login": self.last_login
+            "last_login": self.last_login,
+            "language": self.language
         }
     
     @classmethod
@@ -100,13 +103,26 @@ class UserManager:
             except:
                 continue
         return None
+
+    def get_user_by_github_login(self, github_login: str) -> Optional[User]:
+        """Get user by GitHub login"""
+        for user_file in self.users_dir.glob("*.json"):
+            try:
+                with open(user_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if data.get("github_login") == github_login:
+                        return User.from_dict(data)
+            except:
+                continue
+        return None
     
     def register_user(
         self,
         github_login: str,
         github_id: int,
         email: str = "",
-        avatar_url: str = ""
+        avatar_url: str = "",
+        language: str = "zh"
     ) -> User:
         """Register a new user from GitHub OAuth"""
         # Check if user already exists
@@ -121,7 +137,8 @@ class UserManager:
             github_login=github_login,
             github_id=github_id,
             email=email,
-            avatar_url=avatar_url
+            avatar_url=avatar_url,
+            language=language
         )
         
         # Save user
@@ -130,6 +147,19 @@ class UserManager:
             json.dump(user.to_dict(), f, indent=2, ensure_ascii=False)
         
         return user
+
+    def set_language(self, user_id: str, language: str) -> bool:
+        """Update user's language preference"""
+        user = self.get_user(user_id)
+        if not user:
+            return False
+        
+        user.language = language
+        user_file = self.users_dir / f"{user_id}.json"
+        with open(user_file, "w", encoding="utf-8") as f:
+            json.dump(user.to_dict(), f, indent=2, ensure_ascii=False)
+        return True
+
     
     def create_session(self, user: User, duration_hours: int = 24) -> str:
         """Create a session token"""
