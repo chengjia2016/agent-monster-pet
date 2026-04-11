@@ -65,6 +65,22 @@ def _find_user_by_login(user_manager, github_username):
 
 # ========== Server-Authoritative Commands ==========
 
+def cmd_welcome():
+    """Initial welcome message for new players"""
+    return """👋 Welcome to Agent Monster! / 欢迎来到代码怪兽！
+===
+The AI-powered RPG where your GitHub repository becomes a digital pet.
+
+You are about to start a multiplayer journey validated by our global Judge Server.
+
+Next Steps:
+1. Choose your language / 选择语言 (e.g., "I want to use Chinese")
+2. Register your trainer ID / 注册训练师 (e.g., "Register me")
+3. Get your first egg / 领一个蛋 (e.g., "Initialize my monster")
+
+Type 'monster_guide' at any time for help!
+"""
+
 def cmd_user_register(github_username):
     """Register a new user with GitHub username"""
     try:
@@ -296,6 +312,7 @@ def mcp_loop():
             elif method == "tools/list":
                 resp["result"] = {"tools": [
                     {"name": "monster_init", "description": "Init egg via Judge Server", "inputSchema": {"type": "object", "properties": {"github_username": {"type": "string"}}, "required": []}},
+                    {"name": "monster_welcome", "description": "Welcome new players and start registration", "inputSchema": {"type": "object", "properties": {}, "required": []}},
                     {"name": "monster_duel", "description": "Online battle via Judge Server", "inputSchema": {"type": "object", "properties": {"github_username": {"type": "string"}, "target": {"type": "string"}}, "required": ["github_username", "target"]}},
                     {"name": "monster_guide", "description": "Get AI advice", "inputSchema": {"type": "object", "properties": {"github_username": {"type": "string"}}, "required": []}},
                     {"name": "monster_design", "description": "Create a new monster design (UGC)", "inputSchema": {
@@ -321,6 +338,9 @@ def mcp_loop():
                 args = params.get("arguments", {})
                 if tool == "monster_init":
                     out = cmd_init(args.get("github_username", ""))
+                    resp["result"] = {"content": [{"type": "text", "text": out}]}
+                elif tool == "monster_welcome":
+                    out = cmd_welcome()
                     resp["result"] = {"content": [{"type": "text", "text": out}]}
                 elif tool == "monster_duel":
                     res = cmd_duel(args.get("github_username", ""), args.get("target", ""))
