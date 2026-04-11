@@ -42,8 +42,24 @@ You don't need to remember complex CLI arguments. Just tell the AI what you want
 - *"Hatch my egg"* / *"帮我孵蛋"*
 - *"Challenge Pikachu to a duel!"* / *"向皮卡丘发起挑战！"*
 - *"What should I do next?"* / *"我下一步该做什么？"*
+- *"I want to design a new monster"* / *"我想设计一个新的怪兽"*
 
 ### 2. Multi-Language Support / 多语言支持
+...
+---
+
+## 🎨 Community & UGC / 社区与玩家创作
+
+You can now design your own monsters and contribute to the global game world!
+您现在可以设计自己的怪兽，并为全球游戏世界做出贡献！
+
+1. **Design**: Use `monster_design` to create your monster's soul metadata.
+2. **Submit**: Use `monster_submit_design` to move it to your repository.
+3. **Vote**: Share your repository! Once the community votes for your design, it will be added to the global **Egg Pool** for everyone to hatch.
+
+See the [UGC Guide](docs/UGC_GUIDE.md) for details.
+
+---
 The game remembers your preference. Start by saying:
 游戏会记住你的语言偏好。你可以从这句话开始：
 - *"I want to use English"* 或 *"我想用中文"*

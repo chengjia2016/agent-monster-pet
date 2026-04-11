@@ -179,6 +179,81 @@ def cmd_duel(github_username, target, attack_stack=None):
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+def cmd_design(name, species_type, hp, attack, defense, speed):
+    """Guide the user to design a new monster metadata (UGC)"""
+    try:
+        design = {
+            "metadata": {
+                "name": name,
+                "species": name,
+                "generation": 1,
+                "level": 1,
+                "designer_mode": True
+            },
+            "base_stats": {
+                "hp": int(hp),
+                "attack": int(attack),
+                "defense": int(defense),
+                "sp_atk": int((attack + defense) // 2),
+                "sp_def": int(defense),
+                "speed": int(speed)
+            },
+            "type": [species_type],
+            "nature": "Hardy",
+            "ability": "Recycle"
+        }
+        
+        # Save to temporary design file
+        design_dir = MONSTER_DIR / "designs"
+        design_dir.mkdir(parents=True, exist_ok=True)
+        file_path = design_dir / f"design_{name.lower().replace(' ', '_')}.json"
+        save_json(file_path, design)
+        
+        return f"""🎨 Monster Design Created!
+===
+Name: {name}
+Type: {species_type}
+Stats: HP={hp}, ATK={attack}, DEF={defense}, SPD={speed}
+
+File saved to: .monster/designs/{file_path.name}
+
+Next Step: Run 'monster_submit_design' to prepare it for your repository!
+"""
+    except Exception as e:
+        return f"❌ Design failed: {str(e)}"
+
+def cmd_submit_design(name):
+    """Prepare a designed monster for submission to the user's repository"""
+    try:
+        import shutil
+        design_name = name.lower().replace(' ', '_')
+        src_file = MONSTER_DIR / "designs" / f"design_{design_name}.json"
+        
+        if not src_file.exists():
+            return f"❌ Design '{name}' not found. Run 'monster_design' first."
+            
+        # Target directory in the repo
+        target_dir = SCRIPT_DIR / "designs" / "monsters"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        dest_file = target_dir / f"{design_name}.soul"
+        
+        shutil.copy(src_file, dest_file)
+        
+        return f"""📤 Design Ready for Submission!
+===
+Your monster '{name}' has been moved to:
+/designs/monsters/{dest_file.name}
+
+What to do now:
+1. Commit this file: 'git add designs/monsters/{dest_file.name}'
+2. Push to your repo: 'git push origin main'
+3. Share the link for voting!
+
+Once validated by the community, your monster can hatch from new eggs!
+"""
+    except Exception as e:
+        return f"❌ Submission preparation failed: {str(e)}"
+
 def cmd_guide(github_username=""):
     """Bilingual AI Guide - Multi-language support included"""
     try:
@@ -222,7 +297,24 @@ def mcp_loop():
                 resp["result"] = {"tools": [
                     {"name": "monster_init", "description": "Init egg via Judge Server", "inputSchema": {"type": "object", "properties": {"github_username": {"type": "string"}}, "required": []}},
                     {"name": "monster_duel", "description": "Online battle via Judge Server", "inputSchema": {"type": "object", "properties": {"github_username": {"type": "string"}, "target": {"type": "string"}}, "required": ["github_username", "target"]}},
-                    {"name": "monster_guide", "description": "Get AI advice", "inputSchema": {"type": "object", "properties": {"github_username": {"type": "string"}}, "required": []}}
+                    {"name": "monster_guide", "description": "Get AI advice", "inputSchema": {"type": "object", "properties": {"github_username": {"type": "string"}}, "required": []}},
+                    {"name": "monster_design", "description": "Create a new monster design (UGC)", "inputSchema": {
+                        "type": "object", 
+                        "properties": {
+                            "name": {"type": "string", "description": "Monster name"},
+                            "species_type": {"type": "string", "enum": ["Low-Level", "Scripting", "Logic", "Automation", "Web", "Data", "System", "Network", "Security", "Metal", "Glass", "Hybrid"], "description": "Species type"},
+                            "hp": {"type": "integer", "description": "Base HP (1-255)"},
+                            "attack": {"type": "integer", "description": "Base Attack (1-255)"},
+                            "defense": {"type": "integer", "description": "Base Defense (1-255)"},
+                            "speed": {"type": "integer", "description": "Base Speed (1-255)"}
+                        }, 
+                        "required": ["name", "species_type", "hp", "attack", "defense", "speed"]
+                    }},
+                    {"name": "monster_submit_design", "description": "Move design to repo for git submission", "inputSchema": {
+                        "type": "object",
+                        "properties": {"name": {"type": "string", "description": "Monster name"}},
+                        "required": ["name"]
+                    }}
                 ]}
             elif method == "tools/call":
                 tool = params.get("name", "")
@@ -235,6 +327,12 @@ def mcp_loop():
                     resp["result"] = {"content": [{"type": "text", "text": json.dumps(res)}]}
                 elif tool == "monster_guide":
                     out = cmd_guide(args.get("github_username", ""))
+                    resp["result"] = {"content": [{"type": "text", "text": out}]}
+                elif tool == "monster_design":
+                    out = cmd_design(args.get("name"), args.get("species_type"), args.get("hp"), args.get("attack"), args.get("defense"), args.get("speed"))
+                    resp["result"] = {"content": [{"type": "text", "text": out}]}
+                elif tool == "monster_submit_design":
+                    out = cmd_submit_design(args.get("name"))
                     resp["result"] = {"content": [{"type": "text", "text": out}]}
             
             print(json.dumps(resp), flush=True)
