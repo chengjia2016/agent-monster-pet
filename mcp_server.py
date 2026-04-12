@@ -100,8 +100,8 @@ def cmd_fork_setup(github_username=""):
         cmd = [
             "go", "run", "maps/generator.go", "generate",
             f"-id={map_id}",
-            f"-owner={user.github_id}",
-            f"-name={github_username}",
+            f"-owner-id={user.github_id}",
+            f"-owner={github_username}",
             "-width=20",
             "-height=20"
         ]
