@@ -33,12 +33,18 @@ python3 mcp_server.py welcome
 
 ## 🛠️ Onboarding Workflow (Step-by-Step)
 
-For a perfect new player experience (e.g., "I just forked this repo"), follow this sequence:
+For a perfect new player experience (e.g., "I just forked this repo"), follow this sequence strictly:
 
-1.  **Welcome & Register**: Use `monster_welcome` and then `user_register` (or `monster_welcome` which guides them).
-2.  **Establish Base**: Use `monster_fork_setup`. This generates the initial repository map (the "Base") where the monster lives.
-3.  **Get an Egg**: Use `monster_init`. This connects to the Judge Server to claim the player's first digital egg.
-4.  **Wait for Hatching**: The egg status can be checked via `monster_status`.
+1.  **Welcome & Claim Starter Pack**: Use `monster_welcome` then `user_register`.
+    -   *Reward*: You automatically receive **100 Coins**, **Starter Items**, a **Starter Pet (小黄鸭)**, and your first **Egg**!
+2.  **Test a Battle (Training)**: Before building your home, test your pet's strength!
+    -   Use `monster_duel` against a low-level target like `"pikachu"` or `"duck"`.
+3.  **Establish Your Base**: Create your own space in the digital world.
+    -   Use `monster_fork_setup`. You can provide a **Base Name** (e.g., `"TitanTower"`).
+    -   *Result*: This creates a `/base` directory in your repo with a `map.json` and `config.json`.
+4.  **Play & Submit**: 
+    -   You can now "live" and test gameplay inside your own `./base`.
+    -   If the base is perfect, **Commit and Push** the `base/` folder to your GitHub repository to share it with the world!
 
 ---
 
@@ -55,13 +61,12 @@ Most game data is stored in the **Judge Server's Database**. You should **NOT** 
 
 ### 2. Local-Stored Data (UGC & Creative)
 Only **User-Generated Content (UGC)** should be stored locally in your repository before submission:
-- **Custom Maps**: Map JSON files (e.g., `maps/my_base.json`).
+- **Your Base**: The `./base` directory (Map and Config).
 - **Custom Monsters**: Monster design files (e.g., `designs/monsters/my_pet.soul`).
 - **Submission Process**:
-  1. Design locally using `monster_design`.
-  2. Commit to Git: `git add <file> && git commit -m "Add my design"`.
+  1. Design/Setup locally using `monster_fork_setup` or `monster_design`.
+  2. Commit to Git: `git add base/ && git commit -m "Add my base"`.
   3. Push to GitHub: `git push origin main`.
-  4. The Judge Server will eventually "discover" and validate your design for the global game.
 
 ---
 
@@ -77,12 +82,6 @@ Agent Monster uses a **Dual-Layer Persistence** system:
     - Once identified via GitHub, a local session is created in `.monster/sessions.json`.
     - User profiles (language settings, stats) are stored in `.monster/users/<user_id>.json`.
     - **No manual password needed.** Your GitHub identity is your key.
-
-### Security & Safety / 安全性说明
-- **Credential Safety:** The game **NEVER** stores your GitHub password or raw Personal Access Token (PAT). It only uses the `gh` CLI to fetch your public username and ID.
-- **Token Security:** Local session tokens are generated using SHA256 hashes of your user ID and a unique timestamp.
-- **Data Privacy:** Only your GitHub ID and Login are synced with the Judge Server. No private repository data is sent unless you explicitly use features like `monster_analyze`.
-- **Authoritative Validation:** All critical game actions (battles, item buys) are validated by the Judge Server to prevent local cheating, while keeping your local environment clean.
 
 ---
 
@@ -101,7 +100,6 @@ The ultimate goal is for the player to play using **Natural Language**. As an AI
 | **"Battle someone!"** | `POST /api/battles/start` | `monster_duel` |
 | **"Go to shop"** | `GET /api/shop/items` | `shop_list` |
 | **"Design a pet"** | `N/A` | `monster_design` |
-
 
 ---
 
@@ -123,11 +121,6 @@ The Judge Server is the **Source of Truth**. You can interact with it directly v
   - Body: `{"attacker_id": 1, "defender_id": 2, "battle_type": "duel"}`
 - **Record Result**: `POST /api/battle/validate`
 
-### Economy & Shop
-- **List Items**: `GET /api/shop/items`
-- **Buy Item**: `POST /api/shop/buy`
-- **Transaction History**: `GET /api/shop/transactions?player_id=<id>`
-
 ---
 
 ## 🧠 AI Agent Mandates (from GEMINI.md)
@@ -136,19 +129,6 @@ The Judge Server is the **Source of Truth**. You can interact with it directly v
 2. **Server is Truth**: Never simulate a battle outcome locally; always call the Judge Server.
 3. **Proactive Guidance**: If the player is idle, use `monster_guide` to suggest the next step (e.g., "Your egg is ready to hatch!" or "A rival is challenging you!").
 4. **Multilingual**: Respect the user's language preference (default: Chinese).
-
----
-
-## 🛠️ Operational Commands for Agents
-
-If you need to run the MCP server for a full interactive session:
-```bash
-# Start MCP server (for Claude Code / OpenCode)
-python3 mcp_server.py mcp
-
-# Manual check of a pet's soul
-cat .monster/pet.soul
-```
 
 ---
 

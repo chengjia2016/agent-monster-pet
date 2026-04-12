@@ -71,59 +71,17 @@ def cmd_welcome():
 ===
 The AI-powered RPG where your GitHub repository becomes a digital pet.
 
-You are about to start a multiplayer journey validated by our global Judge Server.
-
 Next Steps:
 1. Choose your language / 选择语言 (e.g., "I want to use Chinese")
 2. Register your trainer ID / 注册训练师 (e.g., "Register me")
-3. Setup your base / 建立基地 (e.g., "Setup my base")
-4. Get your first egg / 领一个蛋 (e.g., "Initialize my monster")
+   - You will receive a starter Pet and an Egg!
+3. Test a Battle / 测试战斗 (e.g., "Duel against pikachu")
+   - Try your skills before building your home.
+4. Setup your base / 建立基地 (e.g., "Setup my base named 'DreamHouse'")
+   - This creates a 'base' directory in your repo with your own 'map'.
 
 Type 'monster_guide' at any time for help!
 """
-
-def cmd_fork_setup(github_username=""):
-    """Automatically setup base and map for a forked repository"""
-    try:
-        from user_manager import UserManager
-        user_manager = UserManager(str(MONSTER_DIR))
-        
-        if not github_username:
-            github_username = "current_user"
-            
-        user = _find_user_by_login(user_manager, github_username)
-        if not user:
-            return "❌ 请先运行 monster_welcome 或 user_register 进行注册。"
-
-        # Generate a starter map using maps/generator.go
-        map_id = f"{github_username}_starter"
-        cmd = [
-            "go", "run", "maps/generator.go", "generate",
-            f"-id={map_id}",
-            f"-owner-id={user.github_id}",
-            f"-owner={github_username}",
-            "-width=20",
-            "-height=20"
-        ]
-        
-        subprocess.run(cmd, capture_output=True, text=True, check=True)
-        
-        # Verify if the map file was created
-        map_file = Path("maps") / f"{map_id}.json"
-        if map_file.exists():
-            return f"""✅ Base Setup Complete! / 基地建立成功！
-===
-Map ID: {map_id}
-Location: maps/{map_file.name}
-
-Your base has been established. You can now explore your repository's digital world!
-Next Step: 'monster_init' to get your first egg.
-"""
-        else:
-            return "❌ Map generation failed (file not found)."
-            
-    except Exception as e:
-        return f"❌ Base setup failed: {str(e)}"
 
 def cmd_user_register(github_username):
     """Register a new user with GitHub username"""
@@ -150,7 +108,7 @@ Username: {user.github_login}
 GitHub ID: {user.github_id}
 Online Sync: {'Success' if judge_res.get('success') else 'Failed'}
 
-Next Step: Run 'monster_fork_setup' to establish your base!
+Next Step: Run 'monster_duel' to test your new pet!
 """
         else:
             return f"❌ Registration failed: {message}"
@@ -201,6 +159,68 @@ def cmd_init(github_username=""):
             return f"❌ 蛋初始化失败 (裁判服务器): {judge_result.get('error', '未知错误')}"
     except Exception as e:
         return f"❌ 初始化异常: {str(e)}"
+
+def cmd_fork_setup(github_username="", base_name="MyBase"):
+    """Automatically setup base/ directory and map for the repository"""
+    try:
+        from user_manager import UserManager
+        user_manager = UserManager(str(MONSTER_DIR))
+        
+        if not github_username:
+            github_username = "current_user"
+            
+        user = _find_user_by_login(user_manager, github_username)
+        if not user:
+            return "❌ 请先运行 monster_welcome 或 user_register 进行注册。"
+
+        # Create 'base' directory in the repo
+        base_dir = SCRIPT_DIR / "base"
+        base_dir.mkdir(parents=True, exist_ok=True)
+
+        # Generate a starter map using maps/generator.go
+        map_id = f"{github_username}_starter"
+        cmd = [
+            "go", "run", "maps/generator.go", "generate",
+            f"-id={map_id}",
+            f"-owner-id={user.github_id}",
+            f"-owner={github_username}",
+            "-width=20",
+            "-height=20"
+        ]
+        
+        subprocess.run(cmd, capture_output=True, text=True, check=True)
+        
+        # Move to base/map.json
+        src_map = Path("maps") / f"{map_id}.json"
+        dest_map = base_dir / "map.json"
+        
+        if src_map.exists():
+            import shutil
+            shutil.copy(src_map, dest_map)
+            
+            # Save base config
+            base_config = {
+                "base_name": base_name,
+                "owner": github_username,
+                "created_at": datetime.utcnow().isoformat(),
+                "map_path": "base/map.json"
+            }
+            save_json(base_dir / "config.json", base_config)
+
+            return f"""✅ Base established! / 基地建立成功！
+===
+Base Name: {base_name}
+Directory: ./base/
+Map: ./base/map.json
+
+You can now test and play in your own base! 
+If you like it, commit and push the 'base' folder to your GitHub repo.
+"""
+        else:
+            return "❌ Map generation failed (file not found)."
+            
+    except Exception as e:
+        return f"❌ Base setup failed: {str(e)}"
 
 def cmd_duel(github_username, target, attack_stack=None):
     """Start a battle through the Judge Server (No local simulation)"""
@@ -362,7 +382,14 @@ def mcp_loop():
                 resp["result"] = {"tools": [
                     {"name": "monster_init", "description": "Init egg via Judge Server", "inputSchema": {"type": "object", "properties": {"github_username": {"type": "string"}}, "required": []}},
                     {"name": "monster_welcome", "description": "Welcome new players and start registration", "inputSchema": {"type": "object", "properties": {}, "required": []}},
-                    {"name": "monster_fork_setup", "description": "Setup base and map for the repository", "inputSchema": {"type": "object", "properties": {"github_username": {"type": "string"}}, "required": []}},
+                    {"name": "monster_fork_setup", "description": "Setup base/ directory and map for the repository", "inputSchema": {
+                        "type": "object", 
+                        "properties": {
+                            "github_username": {"type": "string"},
+                            "base_name": {"type": "string", "description": "Name for your base"}
+                        }, 
+                        "required": []
+                    }},
                     {"name": "monster_duel", "description": "Online battle via Judge Server", "inputSchema": {"type": "object", "properties": {"github_username": {"type": "string"}, "target": {"type": "string"}}, "required": ["github_username", "target"]}},
                     {"name": "monster_guide", "description": "Get AI advice", "inputSchema": {"type": "object", "properties": {"github_username": {"type": "string"}}, "required": []}},
                     {"name": "monster_design", "description": "Create a new monster design (UGC)", "inputSchema": {
@@ -393,7 +420,7 @@ def mcp_loop():
                     out = cmd_welcome()
                     resp["result"] = {"content": [{"type": "text", "text": out}]}
                 elif tool == "monster_fork_setup":
-                    out = cmd_fork_setup(args.get("github_username", ""))
+                    out = cmd_fork_setup(args.get("github_username", ""), args.get("base_name", "MyBase"))
                     resp["result"] = {"content": [{"type": "text", "text": out}]}
                 elif tool == "monster_duel":
                     res = cmd_duel(args.get("github_username", ""), args.get("target", ""))
